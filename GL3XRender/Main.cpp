@@ -54,21 +54,19 @@ void CALLBACK FreePlugin(IPlugin *plugin)
 		}
 }
 
-BOOL APIENTRY DllMain( HMODULE hModule,
-					   DWORD  ul_reason_for_call,
-					   LPVOID lpReserved
-					 )
+BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
 	switch (ul_reason_for_call)
 	{
-	case DLL_PROCESS_ATTACH:
-		::hModule = hModule;
-		break;
-	case DLL_PROCESS_DETACH:
-		for (size_t i = 0; i < vecPluginCores.size(); ++i)
-			delete vecPluginCores[i];
-		vecPluginCores.clear();
-		break;
+		case DLL_PROCESS_ATTACH:
+			::hModule = hModule;
+			break;
+
+		case DLL_PROCESS_DETACH:
+			for (size_t i = 0; i < vecPluginCores.size(); ++i)
+				delete vecPluginCores[i];
+			vecPluginCores.clear();
+			break;
 	}
 	return TRUE;
 }

@@ -10,6 +10,7 @@ See "DGLE.h" for more details.
 #pragma once
 
 #include <DGLE.h>
+#include <DGLE_CoreRenderer.h>
 
 #include <string>
 #include <vector>
@@ -17,12 +18,6 @@ See "DGLE.h" for more details.
 //#include "utils.h"
 
 using namespace DGLE;
-
-#define PLUGIN_NAME				"Plugin Template"
-#define PLUGIN_VERSION			"1.0 (" __DATE__ ")"
-#define PLUGIN_VENDOR			"Your Company Name"
-#define PLUGIN_DESCRIPTION		"Just simple template for any DGLE plugin."
-#define PLUGIN_INTERFACE_NAME	"IPlugin"
 
 void LogWrite(uint uiInstIdx, const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber);
 inline void LogWrite(uint uiInstIdx, const std::string &str, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)

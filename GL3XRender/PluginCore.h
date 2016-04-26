@@ -11,7 +11,15 @@ See "DGLE.h" for more details.
 
 #include "Common.h"
 
-class CPluginCore : public IPlugin
+#define PLUGIN_NAME				"GL3XRender"
+#define PLUGIN_VERSION			"0.01 (" __DATE__ ")"
+#define PLUGIN_VENDOR			"Consta"
+#define PLUGIN_DESCRIPTION		"OpenGL 3.2 and above core render implementation for DGLE"
+#define PLUGIN_INTERFACE_NAME	"ISubSystemPlugin"
+
+class GL3XCoreRender;
+
+class CPluginCore : public ISubSystemPlugin
 {
 	friend void LogWrite(uint uiInstIdx, const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber);
 
@@ -19,6 +27,7 @@ private:
 	
 	uint _uiInstIdx;
 	IEngineCore *_pEngineCore;
+	GL3XCoreRender *_render;
 
 	int _iDrawProfiler;
 
@@ -42,6 +51,7 @@ public:
 
 	DGLE_RESULT DGLE_API GetPluginInfo(TPluginInfo &stInfo);
 	DGLE_RESULT DGLE_API GetPluginInterfaceName(char* pcName, uint &uiCharsCount);
+	DGLE_RESULT DGLE_API GetSubSystemInterface(IEngineSubSystem *&prSubSystem);
 
 	IDGLE_BASE_IMPLEMENTATION(IPlugin, INTERFACE_IMPL_END)
 };

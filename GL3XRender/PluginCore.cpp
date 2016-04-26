@@ -8,6 +8,7 @@ See "DGLE.h" for more details.
 */
 
 #include "PluginCore.h"
+#include "GL3XCoreRender.h"
 
 CPluginCore::CPluginCore(IEngineCore *pEngineCore):
 _pEngineCore(pEngineCore), _iDrawProfiler(0)
@@ -21,11 +22,15 @@ _pEngineCore(pEngineCore), _iDrawProfiler(0)
 	_pEngineCore->AddEventListener(ET_ON_WINDOW_MESSAGE, &_s_EventHandler, (void*)this);
 	_pEngineCore->AddEventListener(ET_ON_PROFILER_DRAW, &_s_EventHandler, (void*)this);
 
-	_pEngineCore->ConsoleRegisterVariable("tmpl_profiler", "Displays Plugin Template profiler.", &_iDrawProfiler, 0, 1);
+	_pEngineCore->ConsoleRegisterVariable("gl3", "Displays gl3 plugin.", &_iDrawProfiler, 0, 1);
+
+	_render = new GL3XCoreRender();
 }
 
 CPluginCore::~CPluginCore()
 {
+	delete _render;
+
 	_pEngineCore->RemoveProcedure(EPT_RENDER, &_s_Render, (void*)this);
 	_pEngineCore->RemoveProcedure(EPT_UPDATE, &_s_Update, (void*)this);
 	_pEngineCore->RemoveProcedure(EPT_INIT, &_s_Init, (void*)this);
@@ -65,12 +70,7 @@ void CPluginCore::_ProfilerDraw()
 {
 	if (_iDrawProfiler == 0)
 		return;
-
-	//ToDo: Put your code here.
-
-	_pEngineCore->RenderProfilerText("======Plugin Template=======");
-	_pEngineCore->RenderProfilerText("Everything is Ok!");
-	_pEngineCore->RenderProfilerText("============================");
+	_pEngineCore->RenderProfilerText("GL3XRender plugin is here");
 }
 
 DGLE_RESULT DGLE_API CPluginCore::GetPluginInfo(TPluginInfo &stInfo)
@@ -102,6 +102,12 @@ DGLE_RESULT DGLE_API CPluginCore::GetPluginInterfaceName(char* pcName, uint &uiC
 
 	strcpy(pcName, PLUGIN_INTERFACE_NAME);
 	
+	return S_OK;
+}
+
+DGLE_RESULT DGLE_API CPluginCore::GetSubSystemInterface(IEngineSubSystem*& prSubSystem)
+{
+	prSubSystem = reinterpret_cast<IEngineSubSystem*>(_render);
 	return S_OK;
 }
 

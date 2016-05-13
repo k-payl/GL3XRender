@@ -12,6 +12,8 @@
 *.7z
 *.db
 
+log.txt
+
 [Dd]ebug/
 [Rr]elease/
 x64/

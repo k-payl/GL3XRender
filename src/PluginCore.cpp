@@ -24,7 +24,7 @@ _pEngineCore(pEngineCore), _iDrawProfiler(0)
 
 	_pEngineCore->ConsoleRegisterVariable("gl3", "Displays gl3 plugin.", &_iDrawProfiler, 0, 1);
 
-	_render = new GL3XCoreRender();
+	_render = new GL3XCoreRender(pEngineCore);
 }
 
 CPluginCore::~CPluginCore()

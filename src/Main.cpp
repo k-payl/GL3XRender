@@ -21,7 +21,7 @@ void LogWrite(uint uiInstIdx, const char *pcTxt, E_LOG_TYPE eType, const char *p
 	if (uiInstIdx == -1)
 	{
 		for (size_t i = 0; i < vecPluginCores.size(); ++i)
-			vecPluginCores[i]->_pEngineCore->WriteToLogEx(("**Broadcast**"s + pcTxt).c_str(), eType, pcSrcFileName, iSrcLineNumber);
+			vecPluginCores[i]->_pEngineCore->WriteToLogEx(("GL3XCoreRender plugin: " + string(pcTxt)).c_str(), eType, pcSrcFileName, iSrcLineNumber);
 		
 		return;
 	}

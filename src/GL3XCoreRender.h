@@ -1,10 +1,23 @@
 #pragma once
 #include "Common.h"
+#include "GL/glew.h"
 
-class GL3XCoreRender : public ICoreRenderer
+
+class GL3XCoreRender final : public ICoreRenderer
 {
+	IEngineCore *_core;
+	GLuint _programID;
+	GLuint _fragID;
+	GLuint _vertID;
+	TMatrix4x4 modelViewMat;
+	TMatrix4x4 projectionMat;
+
+	void _load_and_compile_shader(const char* filename, GLenum type);
+
 public:
 
+	GL3XCoreRender(IEngineCore *pCore);
+	
 	DGLE_RESULT DGLE_API Prepare(TCrRndrInitResults &stResults) override;
 	DGLE_RESULT DGLE_API Initialize(TCrRndrInitResults &stResults, TEngineWindow &stWin, E_ENGINE_INIT_FLAGS &eInitFlags) override;
 	DGLE_RESULT DGLE_API Finalize() override;
@@ -26,7 +39,7 @@ public:
 	DGLE_RESULT DGLE_API ReadFrameBuffer(uint uiX, uint uiY, uint uiWidth, uint uiHeight, uint8 *pData, uint uiDataSize, E_TEXTURE_DATA_FORMAT eDataFormat) override;
 	DGLE_RESULT DGLE_API SetRenderTarget(ICoreTexture *pTexture) override;
 	DGLE_RESULT DGLE_API GetRenderTarget(ICoreTexture *&prTexture) override;
-	DGLE_RESULT DGLE_API CreateTexture(ICoreTexture *&prTex, const uint8 *pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags) override;
+	DGLE_RESULT DGLE_API CreateTexture(ICoreTexture *&prTex, const uint8* const pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags) override;
 	DGLE_RESULT DGLE_API CreateGeometryBuffer(ICoreGeometryBuffer *&prBuffer, const TDrawDataDesc &stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode, E_CORE_RENDERER_BUFFER_TYPE eType) override;
 	DGLE_RESULT DGLE_API ToggleStateFilter(bool bEnabled) override;
 	DGLE_RESULT DGLE_API InvalidateStateFilter() override;
@@ -53,6 +66,7 @@ public:
 	DGLE_RESULT DGLE_API IsFeatureSupported(E_CORE_RENDERER_FEATURE_TYPE eFeature, bool &bIsSupported) override;
 	DGLE_RESULT DGLE_API GetRendererType(E_CORE_RENDERER_TYPE &eType) override;
 
+	// IEngineSubSystem
 	DGLE_RESULT DGLE_API GetType(E_ENGINE_SUB_SYSTEM &eSubSystemType) override;
 
 	IDGLE_BASE_IMPLEMENTATION(ICoreRenderer, INTERFACE_IMPL(IEngineSubSystem, INTERFACE_IMPL_END))

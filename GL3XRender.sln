@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GL3XRender", "Win32Project2\Win32Project2.vcxproj", "{11454D73-9FE6-4F9C-8AD6-721F06F429F2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GL3XRender", "GL3XRender.vcxproj", "{11454D73-9FE6-4F9C-8AD6-721F06F429F2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

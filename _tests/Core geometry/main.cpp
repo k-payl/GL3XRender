@@ -2,7 +2,7 @@
 // Loading geometry and creation it through core render
 //
 #include <DGLE.h>
-#include <DGLE_CoreRenderer.h>
+//#include <DGLE_CoreRenderer.h>
 
 using namespace DGLE;
 
@@ -19,7 +19,7 @@ IEngineCore *pEngineCore = nullptr;
 IRender3D *pRender3D;
 IRender *pRender;
 IResourceManager *pResMan;
-IMesh *mesh;
+IMesh *pMesh;
 uint uiCounter = 0;
 
 void DGLE_API Init(void *pParameter)
@@ -27,9 +27,9 @@ void DGLE_API Init(void *pParameter)
 	pEngineCore->GetSubSystem(ESS_RENDER, reinterpret_cast<IEngineSubSystem *&>(pRender));
 	//pEngineCore->GetSubSystem(ESS_CORE_RENDERER, reinterpret_cast<IEngineSubSystem *&>(pCoreRender));
 	pRender->GetRender3D(pRender3D);
-
 	pEngineCore->GetSubSystem(ESS_RESOURCE_MANAGER, reinterpret_cast<IEngineSubSystem *&>(pResMan));
-	pResMan->Load(RESOURCE_PATH"cube.dmd", reinterpret_cast<IEngineBaseObject *&>(mesh), MMLF_FORCE_MODEL_TO_MESH);
+	pResMan->Load(RESOURCE_PATH"teapot.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh), MMLF_FORCE_MODEL_TO_MESH);
+	//pResMan->GetDefaultResource(EOT_MESH, reinterpret_cast<IEngineBaseObject *&>(pMesh));
 }
 
 void DGLE_API Update(void *pParameter)
@@ -44,11 +44,12 @@ void DGLE_API Render(void *pParameter)
 	pRender3D->SetMatrix
 	( 
 		MatrixRotate(static_cast<float>(uiCounter), TVector3(0.f, 1.f, 0.f)) * 
-		MatrixTranslate(TVector3(0.f, 0.f, -2.5f)) * 
-		MatrixIdentity() // use identity matrix as zero point for all transformations
+		MatrixRotate(static_cast<float>(25), TVector3(1.f, 0.f, 0.f)) * 
+		MatrixTranslate(TVector3(.0f, -0.3f, -3.5f)) * 
+		MatrixIdentity() // zero point for all transformations
 	);
 
-	mesh->Draw();
+	pMesh->Draw();
 }
 
 
@@ -61,7 +62,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			pEngineCore->AddProcedure(EPT_INIT, &Init);
 			pEngineCore->AddProcedure(EPT_RENDER, &Render);
 			pEngineCore->AddProcedure(EPT_UPDATE, &Update);
-
 			pEngineCore->StartEngine();
 		}
 

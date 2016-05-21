@@ -1,19 +1,26 @@
 #include "GL3XCoreRender.h"
+#include <vector>
 #include <assert.h>
-using std::vector;
-using std::string;
+using namespace std;
+
 
 #define SHADERS_DIRECTORY "shaders\\"
+#define LOG_INFO(txt) LogToDGLE(string(txt).c_str(), LT_INFO, __FILE__, __LINE__)
 
-// Context create/delete functions
-// and another platform specific stuff
-extern bool CreateGL(TWindowHandle);
+static IEngineCore *_core;
+// TODO: put shader text here 
+
+extern bool CreateGL(TWindowHandle, IEngineCore* pCore);
 extern void MakeCurrent(); // realy need??
 extern void FreeGL();
 extern void SwapBuffer();
 
+static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
+{
+	_core->WriteToLogEx(pcTxt, eType, pcSrcFileName, iSrcLineNumber);
+}
 
-static GLsizei VertexCost(const TDrawDataDesc& stDrawDesc)
+static GLsizei vertexSize(const TDrawDataDesc& stDrawDesc)
 {
 	return
 		4 * (	// sizeof(float)											
@@ -25,7 +32,7 @@ static GLsizei VertexCost(const TDrawDataDesc& stDrawDesc)
 			(stDrawDesc.uiBinormalOffset != -1 ? 3 : 0));
 }
 
-vector<string> exact_lines(const char *str)
+static vector<string> exact_lines(const char *str)
 {
 	vector<string> ret;
 	char *search = const_cast<char*>(str);
@@ -65,7 +72,7 @@ vector<string> exact_lines(const char *str)
 	return ret;
 }
 
-vector<const char*> make_ptr_vector(const vector<string>& str_list)
+static vector<const char*> make_ptr_vector(const vector<string>& str_list)
 {
 	vector<const char*> v{ str_list.size() + 1, nullptr };
 	for (size_t i = 0; i < str_list.size(); i++) 
@@ -73,8 +80,38 @@ vector<const char*> make_ptr_vector(const vector<string>& str_list)
 	return v;
 }
 
+static void checkShaderError(uint id, GLenum constant)
+{
+	int iStatus;
+
+	if (constant == GL_COMPILE_STATUS)
+		glGetShaderiv(id, GL_COMPILE_STATUS, &iStatus);
+	else if (constant == GL_LINK_STATUS)
+		glGetProgramiv(id, GL_LINK_STATUS, &iStatus);
+
+	if (iStatus == GL_FALSE)
+	{
+		char * buf;
+		GLint maxLenght = 0;
+		if (constant == GL_COMPILE_STATUS)
+			glGetShaderiv(id, GL_INFO_LOG_LENGTH, &maxLenght);
+		else if (constant == GL_LINK_STATUS)
+			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &maxLenght);
+		buf = new char[maxLenght];
+
+		if (constant == GL_COMPILE_STATUS)
+			glGetShaderInfoLog(id, maxLenght, &maxLenght, buf);
+		else if (constant == GL_LINK_STATUS)
+			glGetProgramInfoLog(id, maxLenght, &maxLenght, buf);
+
+		assert(false);
+		delete buf;
+	}
+}
+
+
 ////////////////////////////
-//    GLGeometryBuffer    //
+//        Geometry        //
 ////////////////////////////
 
 class GLGeometryBuffer final : public ICoreGeometryBuffer
@@ -102,7 +139,7 @@ public:
 		glGenBuffers(1, &_vbo);	
 		if (indexBuffer) glGenBuffers(1, &_ibo);
 		
-		LOG("GLGeometryBuffer()");
+		LOG_INFO("GLGeometryBuffer()");
 	}
 
 	~GLGeometryBuffer()
@@ -111,7 +148,7 @@ public:
 		glDeleteBuffers(1, &_vbo);
 		glDeleteVertexArrays(1, &_vao);
 
-		LOG("~GLGeometryBuffer()");
+		LOG_INFO("~GLGeometryBuffer()");
 	}
 
 	DGLE_RESULT DGLE_API GetGeometryData(TDrawDataDesc& stDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override {return S_OK;}
@@ -138,12 +175,14 @@ public:
 			auto ptr = stDrawDesc.pData + stDrawDesc.uiNormalOffset;
 			if (stDrawDesc.uiNormalOffset != -1)
 			{
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiNormalStride, reinterpret_cast<void*>(stDrawDesc.uiNormalOffset));
+				glEnableVertexAttribArray(3);
+				void *np = reinterpret_cast<void*>(stDrawDesc.pData + stDrawDesc.uiNormalOffset);
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiNormalStride, reinterpret_cast<void*>(stDrawDesc.uiNormalOffset));
 			}
 			if (stDrawDesc.uiTextureVertexOffset != -1)
 			{
-				glEnableVertexAttribArray(2);
+				glEnableVertexAttribArray(2);		
+				void *tp = reinterpret_cast<void*>(stDrawDesc.pData + stDrawDesc.uiTextureVertexOffset);
 				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stDrawDesc.uiTextureVertexStride, reinterpret_cast<void*>(stDrawDesc.uiTextureVertexOffset));
 			}
 			//if (stDrawDesc.uiColorOffset != -1)
@@ -175,7 +214,7 @@ public:
 		_vertexCount = uiVerticesCount;
 		_indexCount = uiIndicesCount;
 
-		const GLsizei v_cost = VertexCost(stDrawDesc);
+		const GLsizei v_cost = vertexSize(stDrawDesc);
 		const GLsizei vertex_data_bytes = uiVerticesCount * v_cost;
 		const GLsizei indexes_data_bytes = uiIndicesCount * (stDrawDesc.bIndexBuffer32 ? sizeof(uint32) : sizeof(uint16));
 
@@ -197,7 +236,7 @@ public:
 
 
 ////////////////////////////
-//        GLTexture       //
+//         Texture        //
 ////////////////////////////
 
 class GLTexture final : public ICoreTexture
@@ -210,11 +249,11 @@ public:
 
 	GLTexture(const uint8* pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags)
 	{
-		LOG("GLTexture()");
+		LOG_INFO("GLTexture()");
 	}
 	~GLTexture()
 	{
-		LOG("~GLTexture()");
+		LOG_INFO("~GLTexture()");
 	}
 
 	DGLE_RESULT DGLE_API GetSize(uint& width, uint& height) override {return S_OK;}
@@ -232,53 +271,13 @@ public:
 		return S_OK;
 	}
 
-
 	IDGLE_BASE_IMPLEMENTATION(ICoreTexture, INTERFACE_IMPL_END)
 };
 
 
 //////////////////////////
-//    GL3XCoreRender    //
+//         Render       //
 //////////////////////////
-
-GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _core(pCore), _programID(0), _fragID(0), _vertID(0)
-{
-}
-
-DGLE_RESULT DGLE_API GL3XCoreRender::Prepare(TCrRndrInitResults& stResults)
-{ 	
-
-	return S_OK;
-}
-
-void _checkShaderError(uint id, GLenum constant)
-{
-	int iStatus;
-
-	if (constant == GL_COMPILE_STATUS)
-		glGetShaderiv(id, GL_COMPILE_STATUS, &iStatus);
-	else if (constant == GL_LINK_STATUS)
-		glGetProgramiv(id, GL_LINK_STATUS, &iStatus);
-
-	if (iStatus == GL_FALSE)
-	{
-		char * buf;
-		GLint maxLenght = 0;
-		if (constant == GL_COMPILE_STATUS)
-			glGetShaderiv(id, GL_INFO_LOG_LENGTH, &maxLenght);
-		else if (constant == GL_LINK_STATUS)
-			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &maxLenght);
-		buf = new char[maxLenght];
-
-		if (constant == GL_COMPILE_STATUS)
-			glGetShaderInfoLog(id, maxLenght, &maxLenght, buf);
-		else if (constant == GL_LINK_STATUS)
-			glGetProgramInfoLog(id, maxLenght, &maxLenght, buf);
-
-		assert(false);
-		delete buf;
-	}
-}
 
 void GL3XCoreRender::_load_and_compile_shader(const char* filename, GLenum type)
 {
@@ -303,34 +302,45 @@ void GL3XCoreRender::_load_and_compile_shader(const char* filename, GLenum type)
 	shd = glCreateShader(type);
 	glShaderSource(shd, ptr_vec.size() - 1, &ptr_vec[0], nullptr);
 	glCompileShader(shd);
-	_checkShaderError(shd, GL_COMPILE_STATUS);
+	checkShaderError(shd, GL_COMPILE_STATUS);
 }
+
+GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _programID(0), _fragID(0), _vertID(0)
+{
+	_core = pCore;
+}
+
+DGLE_RESULT DGLE_API GL3XCoreRender::Prepare(TCrRndrInitResults& stResults)
+{ 	
+	return S_OK;
+}
+
 DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, TEngineWindow& stWin, E_ENGINE_INIT_FLAGS& eInitFlags)
 { 
 	TWindowHandle handle;
 	_core->GetWindowHandle(handle);
-	stResults = CreateGL(handle);
-	if (!stResults) return E_FAIL;
+	if (!CreateGL(handle, _core)) return E_FAIL;
 
+	GLint major, minor;
+	#define OGLI "Initialized at OpenGL " 
+	char buffer[sizeof(OGLI) + 4];	
+	glGetIntegerv(GL_MAJOR_VERSION, &major);
+	glGetIntegerv(GL_MINOR_VERSION, &minor);
+	sprintf(buffer, OGLI"%i.%i", major, minor);
+	LOG_INFO(string(buffer));
 
 	glEnable(GL_DEPTH_TEST);
 	glClearDepth(1.0);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 
 	_programID = glCreateProgram();
-
 	_load_and_compile_shader(SHADERS_DIRECTORY"camera_vert.shader", GL_VERTEX_SHADER);
 	_load_and_compile_shader(SHADERS_DIRECTORY"camera_frag.shader", GL_FRAGMENT_SHADER);
-
 	glAttachShader(_programID, _vertID);
 	glAttachShader(_programID, _fragID);
-
 	glLinkProgram(_programID);
-	_checkShaderError(_programID, GL_LINK_STATUS);
+	checkShaderError(_programID, GL_LINK_STATUS);
 
-	return stResults ? S_OK : E_FAIL;
+	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Finalize()
@@ -378,6 +388,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Clear(bool bColor, bool bDepth, bool bStenc
 	if (bDepth)	mask |= GL_DEPTH_BUFFER_BIT;
 	if (bStencil) mask |= GL_STENCIL_BUFFER_BIT;
 	glClear(mask);
+
 	return S_OK;
 }
 
@@ -389,6 +400,11 @@ DGLE_RESULT DGLE_API GL3XCoreRender::SetViewport(uint x, uint y, uint width, uin
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetViewport(uint& x, uint& y, uint& width, uint& height)
 { 
+	GLint vp[4];
+	glGetIntegerv(GL_VIEWPORT, vp);
+	x = vp[0]; y = vp[1];
+	width = vp[2]; height = vp[3];
+
 	return S_OK;
 }
 
@@ -445,8 +461,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& prTex, const u
 		delete texture;
 		return S_FALSE;
 	}
-
-	prTex = texture;
+	prTex = texture;	
 	return S_OK;
 }
 
@@ -454,9 +469,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateGeometryBuffer(ICoreGeometryBuffer*& 
 { 
 	auto buffer = new GLGeometryBuffer(eType, uiIndicesCount > 0);
 	auto ret = buffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
-
 	prBuffer = buffer;
-
 	return ret;
 }
 
@@ -484,12 +497,11 @@ DGLE_RESULT DGLE_API GL3XCoreRender::SetMatrix(const TMatrix4x4& stMatrix, E_MAT
 { 
 	switch (eMatType)
 	{
-		case MT_MODELVIEW: modelViewMat = stMatrix; break;
-		case MT_PROJECTION: projectionMat = stMatrix; break;
+		case MT_MODELVIEW: MV = stMatrix; break;
+		case MT_PROJECTION: P = stMatrix; break;
 		case MT_TEXTURE: // TODO:  
 			break;
 	}
-
 	return S_OK;
 }
 
@@ -510,18 +522,29 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 
 	glUseProgram(_programID);
 
-	TMatrix4x4 MVP = modelViewMat * projectionMat;
-	const GLuint ID = glGetUniformLocation(_programID, "MVP");
-	glUniformMatrix4fv(ID, 1, GL_FALSE, &MVP._1D[0]);
+	TMatrix4x4 MVP = MV * P;
+	const GLuint MVP_ID = glGetUniformLocation(_programID, "MVP");
+	glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &MVP._1D[0]);
 
+	const GLuint MV_ID = glGetUniformLocation(_programID, "MV");
+	glUniformMatrix4fv(MV_ID, 1, GL_FALSE, &MV._1D[0]);
+
+	// Normal matrix = (MV^-1)^T
+	TMatrix4x4 NM = MatrixTranspose(MatrixInverse(MV));
+	const GLuint Norm_ID = glGetUniformLocation(_programID, "NM");
+	glUniformMatrix4fv(Norm_ID, 1, GL_FALSE, &NM._1D[0]);
+
+	const TVector3 L = { 0.2f, 0.7f, 3.5f };
+	const TVector3 nL = L / L.Length();
+	const TVector3 nL_eyeSpace = MV.ApplyToVector(nL);
+	const GLuint nL_ID = glGetUniformLocation(_programID, "nL");
+	glUniform3f(nL_ID, nL_eyeSpace.x, nL_eyeSpace.y, nL_eyeSpace.z);
 
 	glBindVertexArray(b->VAO_ID());
-
 	if (b->IndexDrawing())
 		glDrawElements(GL_TRIANGLES, b->IndexCount(), ((b->IndexCount() > 65535) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT), nullptr);
 	else if (b->VertexCount() > 0)
 		glDrawArrays(GL_TRIANGLES, 0, b->VertexCount());
-
 	glBindVertexArray(0);
 
 	return S_OK;

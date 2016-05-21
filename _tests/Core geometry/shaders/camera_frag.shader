@@ -2,8 +2,7 @@
 
 smooth in vec3 N;
 
-const vec3 L = vec3(1.0, -0.0, 2.0);
-const vec3 nL = normalize(L);
+uniform vec3 nL;
 
 out vec4 color;
 

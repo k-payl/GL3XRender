@@ -14,22 +14,20 @@ CPluginCore::CPluginCore(IEngineCore *pEngineCore):
 _pEngineCore(pEngineCore), _iDrawProfiler(0)
 {
 	_pEngineCore->GetInstanceIndex(_uiInstIdx);
-
 	_pEngineCore->AddProcedure(EPT_RENDER, &_s_Render, (void*)this);
 	_pEngineCore->AddProcedure(EPT_UPDATE, &_s_Update, (void*)this);
 	_pEngineCore->AddProcedure(EPT_INIT, &_s_Init, (void*)this);
 	_pEngineCore->AddProcedure(EPT_FREE, &_s_Free, (void*)this);
 	_pEngineCore->AddEventListener(ET_ON_WINDOW_MESSAGE, &_s_EventHandler, (void*)this);
 	_pEngineCore->AddEventListener(ET_ON_PROFILER_DRAW, &_s_EventHandler, (void*)this);
-
 	_pEngineCore->ConsoleRegisterVariable("gl3", "Displays gl3 plugin.", &_iDrawProfiler, 0, 1);
 
-	_render = new GL3XCoreRender(pEngineCore);
+	_pGL3XCoreRender = new GL3XCoreRender(pEngineCore);
 }
 
 CPluginCore::~CPluginCore()
 {
-	delete _render;
+	delete _pGL3XCoreRender;
 
 	_pEngineCore->RemoveProcedure(EPT_RENDER, &_s_Render, (void*)this);
 	_pEngineCore->RemoveProcedure(EPT_UPDATE, &_s_Update, (void*)this);
@@ -37,7 +35,6 @@ CPluginCore::~CPluginCore()
 	_pEngineCore->RemoveProcedure(EPT_FREE, &_s_Free, (void*)this);
 	_pEngineCore->RemoveEventListener(ET_ON_WINDOW_MESSAGE, &_s_EventHandler, (void*)this);
 	_pEngineCore->AddEventListener(ET_ON_PROFILER_DRAW, &_s_EventHandler, (void*)this);
-
 	_pEngineCore->ConsoleUnregister("tmpl_profiler");
 }
 
@@ -107,7 +104,7 @@ DGLE_RESULT DGLE_API CPluginCore::GetPluginInterfaceName(char* pcName, uint &uiC
 
 DGLE_RESULT DGLE_API CPluginCore::GetSubSystemInterface(IEngineSubSystem*& prSubSystem)
 {
-	prSubSystem = reinterpret_cast<IEngineSubSystem*>(_render);
+	prSubSystem = reinterpret_cast<IEngineSubSystem*>(_pGL3XCoreRender);
 	return S_OK;
 }
 

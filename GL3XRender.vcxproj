@@ -163,7 +163,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src/Common.h" />
     <ClInclude Include="src/GL3XCoreRender.h" />
     <ClInclude Include="src/PluginCore.h" />
     <ClInclude Include="src\GL\glew.h" />

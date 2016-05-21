@@ -1,16 +1,16 @@
 #pragma once
-#include "Common.h"
+#include "DGLE.h"
+#include "DGLE_CoreRenderer.h"
 #include "GL/glew.h"
-
+using namespace DGLE;
 
 class GL3XCoreRender final : public ICoreRenderer
 {
-	IEngineCore *_core;
 	GLuint _programID;
 	GLuint _fragID;
 	GLuint _vertID;
-	TMatrix4x4 modelViewMat;
-	TMatrix4x4 projectionMat;
+	TMatrix4x4 MV;
+	TMatrix4x4 P;
 
 	void _load_and_compile_shader(const char* filename, GLenum type);
 

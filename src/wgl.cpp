@@ -1,8 +1,10 @@
-#include "Common.h"
+#include "DGLE.h"
 #include <GL\glew.h>
 #include <GL\wglew.h>
 //#include <strsafe.h> // for StringCchPrintf
+using namespace DGLE;
 
+static IEngineCore *_core;
 static HWND _hwnd;
 static HDC _hdc;
 static HGLRC _hRC;
@@ -34,7 +36,14 @@ static HGLRC _hRC;
 //	LocalFree(lpDisplayBuf);
 //}
 
-bool CreateGL(TWindowHandle hwnd)
+static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
+{
+	_core->WriteToLogEx(pcTxt, eType, pcSrcFileName, iSrcLineNumber);
+}
+#define LOG_FATAL(txt) LogToDGLE(std::string(txt).c_str(), LT_FATAL, __FILE__, __LINE__)
+
+
+bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore)
 {
 	_hdc = GetDC(hwnd);
 
@@ -53,14 +62,14 @@ bool CreateGL(TWindowHandle hwnd)
 
 	if (closest_pixel_format == 0)
 	{
-		LogWrite(-1, "wrong ChoosePixelFormat() result", LT_FATAL, __FILE__, __LINE__);
+		LOG_FATAL("wrong ChoosePixelFormat() result");
 		//TODO: safe delete all temporary stuff
 		return false;
 	}
 
 	if (!SetPixelFormat(_hdc, closest_pixel_format, &pfd))
 	{
-		LogWrite(-1, "wrong SetPixelFormat() result", LT_FATAL, __FILE__, __LINE__);
+		LOG_FATAL("wrong SetPixelFormat() result");
 		//TODO: safe delete all temporary stuff
 		return false;
 	}
@@ -72,14 +81,13 @@ bool CreateGL(TWindowHandle hwnd)
 
 	if (glewInit() != GLEW_OK)
 	{
-		LogWrite(-1, "Couldn't initialize GLEW", LT_FATAL, __FILE__, __LINE__);
+		LOG_FATAL("Couldn't initialize GLEW");
 		//TODO: safe delete all temporary stuff
 		return false;
 	}
 
 	wglMakeCurrent(nullptr, nullptr);
 	wglDeleteContext(_hRC_fake);
-
 
 
 	// 2
@@ -117,14 +125,14 @@ bool CreateGL(TWindowHandle hwnd)
 
 		if (closest_pixel_format == 0)
 		{
-			LogWrite(-1, "wrong ChoosePixelFormat() result", LT_FATAL, __FILE__, __LINE__);
+			LOG_FATAL("wrong ChoosePixelFormat() result");
 			//TODO: safe delete all temporary stuff
 			return false;
 		}
 
 		if (!SetPixelFormat(_hdc, closest_pixel_format, &pfd))
 		{
-			LogWrite(-1, "wrong SetPixelFormat() result", LT_FATAL, __FILE__, __LINE__);
+			LOG_FATAL("wrong SetPixelFormat() result");
 			//TODO: safe delete all temporary stuff
 			return false;
 		}
@@ -145,18 +153,18 @@ bool CreateGL(TWindowHandle hwnd)
 			{
 				wglDeleteContext(_hRC);
 				ReleaseDC(_hwnd, _hdc);
-				LogWrite(-1, "Couldn't perform wglMakeCurrent(_hdc, _hRC);", LT_FATAL, __FILE__, __LINE__);
+				LOG_FATAL("Couldn't perform wglMakeCurrent(_hdc, _hRC);");
 			}
 		}
 		else
 		{
-			LogWrite(-1, "Couldn't create OpenGL context with wglCreateContextAttribsARB()", LT_FATAL, __FILE__, __LINE__);
+			LOG_FATAL("Couldn't create OpenGL context with wglCreateContextAttribsARB()");
 			return false;
 		}
 	}
 	else
 	{
-		LogWrite(-1, "Extension WGLEW_ARB_create_context or WGLEW_ARB_pixel_format didn't found in driver", LT_FATAL, __FILE__, __LINE__);
+		LOG_FATAL("Extension WGLEW_ARB_create_context or WGLEW_ARB_pixel_format didn't found in driver");
 		return false;
 	}
 

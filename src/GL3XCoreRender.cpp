@@ -13,7 +13,7 @@ See "DGLE.h" for more details.
 using namespace std;
 
 
-#define SHADERS_DIRECTORY "shaders\\"
+#define SHADERS_DIRECTORY "..\\resources\\shaders\\"
 #define LOG_INFO(txt) LogToDGLE(string(txt).c_str(), LT_INFO, __FILE__, __LINE__)
 
 static IEngineCore *_core;

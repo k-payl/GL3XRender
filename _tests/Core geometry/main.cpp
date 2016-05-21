@@ -10,7 +10,7 @@ DGLE_DYNAMIC_FUNC
 
 #define APP_CAPTION "Core geometry"
 #define DLL_PATH "..\\..\\..\\DGLE\\bin\\windows\\DGLE.dll"
-#define RESOURCE_PATH "..\\resources\\"
+#define RESOURCE_PATH "..\\resources\\models\\"
 #define SCREEN_WIDTH 1000u
 #define SCREEN_HEIGHT 700u
 

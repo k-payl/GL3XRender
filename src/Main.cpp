@@ -1,6 +1,6 @@
 /**
 \author		Korotkov Andrey aka DRON
-\date		23.03.2016 (c)Korotkov Andrey
+\date		21.05.2016 (c)Korotkov Andrey
 
 This file is a part of DGLE project and is distributed
 under the terms of the GNU Lesser General Public License.

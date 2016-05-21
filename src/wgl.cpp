@@ -1,3 +1,17 @@
+/**
+\author		Konstantin Pajl aka Consta
+\date		21.05.2016 (c)Korotkov Andrey
+
+This file is a part of DGLE project and is distributed
+under the terms of the GNU Lesser General Public License.
+See "DGLE.h" for more details.
+*/
+
+/*
+* Working with OpenGL context in windows through
+* wgl interface.
+*/
+
 #include "DGLE.h"
 #include <GL\glew.h>
 #include <GL\wglew.h>

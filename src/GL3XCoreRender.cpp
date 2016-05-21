@@ -1,3 +1,12 @@
+/**
+\author		Konstantin Pajl aka Consta
+\date		21.05.2016 (c)Andrey Korotkov
+
+This file is a part of DGLE project and is distributed
+under the terms of the GNU Lesser General Public License.
+See "DGLE.h" for more details.
+*/
+
 #include "GL3XCoreRender.h"
 #include <vector>
 #include <assert.h>
@@ -116,7 +125,7 @@ static void checkShaderError(uint id, GLenum constant)
 
 class GLGeometryBuffer final : public ICoreGeometryBuffer
 {
-	bool _bEmpty;
+	bool _bNotInitalizedCorrectlyYet;
 	GLsizei _vertexCount;
 	GLsizei _indexCount;
 	GLuint _vao;
@@ -133,7 +142,7 @@ public:
 	inline GLsizei IndexCount() { return _indexCount; }
 
 	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer) :
-		_bEmpty(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType)
+		_bNotInitalizedCorrectlyYet(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType)
 	{		
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
@@ -154,7 +163,7 @@ public:
 	DGLE_RESULT DGLE_API GetGeometryData(TDrawDataDesc& stDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override {return S_OK;}
 	DGLE_RESULT DGLE_API SetGeometryData(const TDrawDataDesc& stDrawDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override	
 	{
-		if (_bEmpty)
+		if (_bNotInitalizedCorrectlyYet)
 		{
 			if (_eBufferType == CRBT_SOFTWARE) return E_FAIL; // not implemented
 			const GLenum glBufferType = _eBufferType == CRBT_HARDWARE_STATIC ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
@@ -200,7 +209,7 @@ public:
 			}
 
 			glBindVertexArray(0);
-			_bEmpty = false;
+			_bNotInitalizedCorrectlyYet = false;
 		}
 		else // update data in buffer
 		{			
@@ -321,16 +330,13 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	_core->GetWindowHandle(handle);
 	if (!CreateGL(handle, _core)) return E_FAIL;
 
-	GLint major, minor;
 	#define OGLI "Initialized at OpenGL " 
+	GLint major, minor;
 	char buffer[sizeof(OGLI) + 4];	
 	glGetIntegerv(GL_MAJOR_VERSION, &major);
 	glGetIntegerv(GL_MINOR_VERSION, &minor);
 	sprintf(buffer, OGLI"%i.%i", major, minor);
 	LOG_INFO(string(buffer));
-
-	glEnable(GL_DEPTH_TEST);
-	glClearDepth(1.0);
 
 	_programID = glCreateProgram();
 	_load_and_compile_shader(SHADERS_DIRECTORY"camera_vert.shader", GL_VERTEX_SHADER);
@@ -339,6 +345,9 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	glAttachShader(_programID, _fragID);
 	glLinkProgram(_programID);
 	checkShaderError(_programID, GL_LINK_STATUS);
+
+	glEnable(GL_DEPTH_TEST);
+	glClearDepth(1.0);
 
 	return S_OK;
 }
@@ -384,8 +393,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetClearColor(TColor4& stColor)
 DGLE_RESULT DGLE_API GL3XCoreRender::Clear(bool bColor, bool bDepth, bool bStencil)
 { 
 	GLbitfield mask = 0;
-	if (bColor)	mask |= GL_COLOR_BUFFER_BIT;
-	if (bDepth)	mask |= GL_DEPTH_BUFFER_BIT;
+	if (bColor) mask |= GL_COLOR_BUFFER_BIT;
+	if (bDepth) mask |= GL_DEPTH_BUFFER_BIT;
 	if (bStencil) mask |= GL_STENCIL_BUFFER_BIT;
 	glClear(mask);
 

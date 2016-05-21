@@ -173,7 +173,7 @@
     <ClCompile Include="src/Main.cpp" />
     <ClCompile Include="src/PluginCore.cpp" />
     <ClCompile Include="src\GL\glew.c" />
-    <ClCompile Include="wgl.cpp" />
+    <ClCompile Include="src\wgl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />

@@ -4,10 +4,10 @@
     <ClCompile Include="src/GL3XCoreRender.cpp" />
     <ClCompile Include="src/Main.cpp" />
     <ClCompile Include="src/PluginCore.cpp" />
-    <ClCompile Include="wgl.cpp" />
     <ClCompile Include="src\GL\glew.c">
       <Filter>GLEW</Filter>
     </ClCompile>
+    <ClCompile Include="src\wgl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src/GL3XCoreRender.h" />

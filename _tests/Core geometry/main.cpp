@@ -21,6 +21,7 @@ IRender *pRender;
 IResourceManager *pResMan;
 IMesh *pMesh;
 uint uiCounter = 0;
+uint prevWindowWidth, prevWindowHeight;
 
 void DGLE_API Init(void *pParameter)
 {
@@ -52,16 +53,38 @@ void DGLE_API Render(void *pParameter)
 	pMesh->Draw();
 }
 
+// callback on switching to fullscreen event
+void DGLE_API OnFullScreenEvent(void *pParameter, IBaseEvent *pEvent)
+{
+	IEvGoFullScreen *p_event = (IEvGoFullScreen *)pEvent;
+
+	uint res_width, res_height;
+	bool go_fscreen;
+	p_event->GetResolution(res_width, res_height, go_fscreen);
+
+	if (go_fscreen)
+	{
+		prevWindowWidth = res_width;
+		prevWindowHeight = res_height;
+
+		pEngineCore->GetDesktopResolution(res_width, res_height);
+		p_event->SetResolution(res_width, res_height);
+	}
+	else
+		p_event->SetResolution(prevWindowWidth, prevWindowHeight);
+}
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 	if (GetEngine(DLL_PATH, pEngineCore))
 	{
-		if (SUCCEEDED(pEngineCore->InitializeEngine(NULL, APP_CAPTION, TEngineWindow(SCREEN_WIDTH, SCREEN_HEIGHT, false, false, MM_NONE, EWF_ALLOW_SIZEING), 33u, static_cast<E_ENGINE_INIT_FLAGS>(EIF_LOAD_ALL_PLUGINS | EIF_NO_SPLASH))))
+		if (SUCCEEDED(pEngineCore->InitializeEngine(NULL, APP_CAPTION, TEngineWindow(SCREEN_WIDTH, SCREEN_HEIGHT, false, false, MM_4X, EWF_ALLOW_SIZEING), 33u, static_cast<E_ENGINE_INIT_FLAGS>(EIF_LOAD_ALL_PLUGINS | EIF_NO_SPLASH))))
 		{
 			pEngineCore->AddProcedure(EPT_INIT, &Init);
 			pEngineCore->AddProcedure(EPT_RENDER, &Render);
 			pEngineCore->AddProcedure(EPT_UPDATE, &Update);
+			pEngineCore->AddEventListener(ET_ON_FULLSCREEN, &OnFullScreenEvent);
 			pEngineCore->StartEngine();
 		}
 

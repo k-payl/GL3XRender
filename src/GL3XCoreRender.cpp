@@ -14,7 +14,7 @@ using namespace std;
 
 
 #define SHADERS_DIRECTORY "..\\resources\\shaders\\"
-#define LOG_INFO(txt) LogToDGLE(string(txt).c_str(), LT_INFO, __FILE__, __LINE__)
+#define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
 
 static IEngineCore *_core;
 // TODO: put shader text here 
@@ -346,8 +346,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	glLinkProgram(_programID);
 	checkShaderError(_programID, GL_LINK_STATUS);
 
+	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_MULTISAMPLE);
 	glClearDepth(1.0);
 
 	return S_OK;

@@ -19,7 +19,7 @@ using namespace std;
 static IEngineCore *_core;
 // TODO: put shader text here 
 
-extern bool CreateGL(TWindowHandle, IEngineCore* pCore);
+extern bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin);
 extern void MakeCurrent(); // realy need??
 extern void FreeGL();
 extern void SwapBuffer();
@@ -328,7 +328,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 { 
 	TWindowHandle handle;
 	_core->GetWindowHandle(handle);
-	if (!CreateGL(handle, _core)) return E_FAIL;
+	if (!CreateGL(handle, _core, stWin)) return E_FAIL;
 
 	#define OGLI "Initialized at OpenGL " 
 	GLint major, minor;
@@ -347,6 +347,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	checkShaderError(_programID, GL_LINK_STATUS);
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_MULTISAMPLE);
 	glClearDepth(1.0);
 
 	return S_OK;

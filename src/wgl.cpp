@@ -57,46 +57,45 @@ static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFile
 #define LOG_FATAL(txt) LogToDGLE(std::string(txt).c_str(), LT_FATAL, __FILE__, __LINE__)
 
 
-bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore)
+bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin)
 {
 	_hdc = GetDC(hwnd);
 
 	// 1
-	PIXELFORMATDESCRIPTOR pfd;
-	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+	PIXELFORMATDESCRIPTOR pfd{};
 	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 	pfd.nVersion = 1;
 	pfd.dwFlags = PFD_DOUBLEBUFFER | PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW;
-	pfd.iPixelType = PFD_TYPE_RGBA;     // тип пикселей
-	pfd.cColorBits = 32;                // тип цвета
-	pfd.cDepthBits = 32;                // тип z-буфера
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 32;
+	pfd.cDepthBits = 24;
 	pfd.iLayerType = PFD_MAIN_PLANE;
 
 	int closest_pixel_format = ChoosePixelFormat(_hdc, &pfd);
 
 	if (closest_pixel_format == 0)
 	{
-		LOG_FATAL("wrong ChoosePixelFormat() result");
-		//TODO: safe delete all temporary stuff
+		LOG_FATAL("Wrong ChoosePixelFormat() result");
 		return false;
 	}
 
 	if (!SetPixelFormat(_hdc, closest_pixel_format, &pfd))
 	{
-		LOG_FATAL("wrong SetPixelFormat() result");
-		//TODO: safe delete all temporary stuff
+		LOG_FATAL("Wrong SetPixelFormat() result");
 		return false;
 	}
 
 	// Create fake context to get all new functions
-	// in order to initialize OpenGL >=3.2
+	// in order to get all necessary WGL extensions 
+	// and then initialize OpenGL >= 3.2
 	HGLRC _hRC_fake = wglCreateContext(_hdc);
 	wglMakeCurrent(_hdc, _hRC_fake);
 
 	if (glewInit() != GLEW_OK)
 	{
 		LOG_FATAL("Couldn't initialize GLEW");
-		//TODO: safe delete all temporary stuff
+		wglMakeCurrent(nullptr, nullptr);
+		wglDeleteContext(_hRC_fake);
 		return false;
 	}
 
@@ -108,49 +107,67 @@ bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore)
 	const int major_version = 3;
 	const int minor_version = 3;
 
-	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-	pfd.nVersion = 1;
-	pfd.dwFlags = PFD_DOUBLEBUFFER | PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW;
-	pfd.iPixelType = PFD_TYPE_RGBA;     // тип пикселей
-	pfd.cColorBits = 32;                // тип цвета
-	pfd.cDepthBits = 32;                // тип z-буфера
-	pfd.iLayerType = PFD_MAIN_PLANE;
+	// This is not extensible way to create framebuffer through PIXELFORMATDESCRIPTOR
+	// => need some extensions.
+	// Useful extensions:
+	// WGL_ARB_pixel_format_float: Allows for floating-point framebuffers.
+	// WGL_ARB_framebuffer_sRGB: Allows for color buffers to be in sRGB format.
+	// WGL_ARB_multisample: Allows for multisampled framebuffers.
+	//memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+	//pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+	//pfd.nVersion = 1;
+	//pfd.dwFlags = PFD_DOUBLEBUFFER | PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW;
+	//pfd.iPixelType = PFD_TYPE_RGBA;
+	//pfd.cColorBits = 32;
+	//pfd.cDepthBits = 24;
+	//pfd.iLayerType = PFD_MAIN_PLANE;
 
-	// Устанавливаем параметры поверхности контекста
-	if (WGLEW_ARB_create_context && WGLEW_ARB_pixel_format)
+	closest_pixel_format = ChoosePixelFormat(_hdc, &pfd);
+	if (closest_pixel_format == 0)
 	{
-		//const int iPixelFormatAttribList[] =
-		//{
-		//	WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
-		//	WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-		//	WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
-		//	WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB, // тип пикселей
-		//	WGL_COLOR_BITS_ARB, 32,                // тип цвета
-		//	WGL_DEPTH_BITS_ARB, 32,                // тип z-буфера
-		//	WGL_STENCIL_BITS_ARB, 8,
-		//	0 // end
-		//};
+		LOG_FATAL("Wrong ChoosePixelFormat() result");
+		return false;
+	}
 
-		//int iPixelFormat, iNumFormats;
-		//wglChoosePixelFormatARB(_hdc, iPixelFormatAttribList, NULL, 1, &iPixelFormat, (UINT*)&iNumFormats);
+	// New way create default framebuffer
+	//if (WGLEW_ARB_pixel_format)
+	//{
+	//	const int iPixelFormatAttribList[] =
+	//	{
+	//		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+	//		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+	//		WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
+	//		WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+	//		WGL_COLOR_BITS_ARB, 32,
+	//		WGL_DEPTH_BITS_ARB, 24,
+	//		WGL_STENCIL_BITS_ARB, 8,
+	//		WGL_SAMPLE_BUFFERS_ARB, 1, //Number of buffers (must be 1 at time of writing)
+	//		WGL_SAMPLES_ARB, 4,        //Number of samples
+	//		0
+	//	};
 
-		int closest_pixel_format = ChoosePixelFormat(_hdc, &pfd);
+	//	int iNumFormats = 0;
+	//	bool chosen = wglChoosePixelFormatARB(_hdc, iPixelFormatAttribList, NULL, 1, &closest_pixel_format, (UINT*)&iNumFormats);
+	//	if  (!chosen || iNumFormats <= 0)
+	//	{
+	//		LOG_FATAL("Wrong wglChoosePixelFormatARB() result");
+	//		return false;
+	//	}		
+	//}
+	//else
+	//{
+	//	LOG_FATAL("Extension WGLEW_ARB_pixel_format didn't found in driver");
+	//	return false;
+	//}
 
-		if (closest_pixel_format == 0)
-		{
-			LOG_FATAL("wrong ChoosePixelFormat() result");
-			//TODO: safe delete all temporary stuff
-			return false;
-		}
+	if (!SetPixelFormat(_hdc, closest_pixel_format, &pfd))
+	{
+		LOG_FATAL("Wrong SetPixelFormat() result");
+		return false;
+	}
 
-		if (!SetPixelFormat(_hdc, closest_pixel_format, &pfd))
-		{
-			LOG_FATAL("wrong SetPixelFormat() result");
-			//TODO: safe delete all temporary stuff
-			return false;
-		}
-
+	if (WGLEW_ARB_create_context)
+	{
 		const int context_attribs[] =
 		{
 			WGL_CONTEXT_MAJOR_VERSION_ARB, major_version,
@@ -178,7 +195,7 @@ bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore)
 	}
 	else
 	{
-		LOG_FATAL("Extension WGLEW_ARB_create_context or WGLEW_ARB_pixel_format didn't found in driver");
+		LOG_FATAL("Extension WGLEW_ARB_create_context didn't found in driver");
 		return false;
 	}
 

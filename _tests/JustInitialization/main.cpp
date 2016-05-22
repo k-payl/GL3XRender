@@ -18,7 +18,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	if (GetEngine(DLL_PATH, pEngineCore))
 	{
-		if (SUCCEEDED(pEngineCore->InitializeEngine(NULL, APP_CAPTION, TEngineWindow(SCREEN_WIDTH, SCREEN_HEIGHT, false, false), 33u, EIF_LOAD_ALL_PLUGINS)))
+		if (SUCCEEDED(pEngineCore->InitializeEngine(NULL, APP_CAPTION, TEngineWindow(SCREEN_WIDTH, SCREEN_HEIGHT, false, false, MM_NONE, EWF_ALLOW_SIZEING), 33u, EIF_LOAD_ALL_PLUGINS)));
 		{
 			pEngineCore->StartEngine();
 		}

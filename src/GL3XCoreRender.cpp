@@ -128,11 +128,14 @@ class GLGeometryBuffer final : public ICoreGeometryBuffer
 	bool _bNotInitalizedCorrectlyYet;
 	GLsizei _vertexCount;
 	GLsizei _indexCount;
+	uint _vertexBytes;
+	uint _indexBytes;
 	GLuint _vao;
 	GLuint _vbo;
 	GLuint _ibo;
 	E_CORE_RENDERER_BUFFER_TYPE _eBufferType;
 	E_CORE_RENDERER_DRAW_MODE _eDrawMode;
+	// We don't keep TDrawDataDesc
 
 public:
 
@@ -161,8 +164,17 @@ public:
 	}
 
 	DGLE_RESULT DGLE_API GetGeometryData(TDrawDataDesc& stDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override {return S_OK;}
-	DGLE_RESULT DGLE_API SetGeometryData(const TDrawDataDesc& stDrawDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override	
+	DGLE_RESULT DGLE_API SetGeometryData(const TDrawDataDesc& stDrawDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override	{ return S_OK; } // what is purpose if Reallocate() exists?
+	DGLE_RESULT DGLE_API Reallocate(const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode) override 
 	{
+		_eDrawMode = eMode;
+		_vertexCount = uiVerticesCount;
+		_indexCount = uiIndicesCount;
+		_vertexBytes = vertexSize(stDrawDesc);
+		const GLsizei vertex_data_bytes = uiVerticesCount * _vertexBytes;
+		_indexBytes = (stDrawDesc.bIndexBuffer32 ? sizeof(uint32) : sizeof(uint16));
+		const GLsizei indexes_data_bytes = uiIndicesCount * _indexBytes;
+
 		if (_bNotInitalizedCorrectlyYet)
 		{
 			if (_eBufferType == CRBT_SOFTWARE) return E_FAIL; // not implemented
@@ -171,7 +183,7 @@ public:
 			glBindVertexArray(_vao);
 
 			glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-			glBufferData(GL_ARRAY_BUFFER, uiVerticesDataSize, reinterpret_cast<const void*>(stDrawDesc.pData), glBufferType); // send data to VRAM
+			glBufferData(GL_ARRAY_BUFFER, vertex_data_bytes, reinterpret_cast<const void*>(stDrawDesc.pData), glBufferType); // send data to VRAM
 
 			// Shader attrubute mapping:
 			// 0 - position
@@ -180,7 +192,7 @@ public:
 			// 3 - color
 
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, stDrawDesc.bVertices2D ? 2 : 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiVertexStride , reinterpret_cast<void*>(0));
+			glVertexAttribPointer(0, stDrawDesc.bVertices2D ? 2 : 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiVertexStride, reinterpret_cast<void*>(0));
 			auto ptr = stDrawDesc.pData + stDrawDesc.uiNormalOffset;
 			if (stDrawDesc.uiNormalOffset != -1)
 			{
@@ -190,7 +202,7 @@ public:
 			}
 			if (stDrawDesc.uiTextureVertexOffset != -1)
 			{
-				glEnableVertexAttribArray(2);		
+				glEnableVertexAttribArray(2);
 				void *tp = reinterpret_cast<void*>(stDrawDesc.pData + stDrawDesc.uiTextureVertexOffset);
 				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stDrawDesc.uiTextureVertexStride, reinterpret_cast<void*>(stDrawDesc.uiTextureVertexOffset));
 			}
@@ -202,34 +214,28 @@ public:
 			// ...
 			// TODO: implement tangent and binormal
 
-			if (uiIndexesDataSize > 0)
+			if (indexes_data_bytes > 0)
 			{
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, uiIndexesDataSize, reinterpret_cast<const void*>(stDrawDesc.pIndexBuffer), glBufferType); // send data to VRAM
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes_data_bytes, reinterpret_cast<const void*>(stDrawDesc.pIndexBuffer), glBufferType); // send data to VRAM
 			}
 
 			glBindVertexArray(0);
 			_bNotInitalizedCorrectlyYet = false;
 		}
 		else // update data in buffer
-		{			
+		{
 		}
-
 		return S_OK;
 	}
-	DGLE_RESULT DGLE_API Reallocate(const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode) override // reduant?
+	DGLE_RESULT DGLE_API GetBufferDimensions(uint& uiVerticesDataSize, uint& uiVerticesCount, uint& uiIndexesDataSize, uint& uiIndexesCount) override 
 	{
-		_eDrawMode = eMode;
-		_vertexCount = uiVerticesCount;
-		_indexCount = uiIndicesCount;
-
-		const GLsizei v_cost = vertexSize(stDrawDesc);
-		const GLsizei vertex_data_bytes = uiVerticesCount * v_cost;
-		const GLsizei indexes_data_bytes = uiIndicesCount * (stDrawDesc.bIndexBuffer32 ? sizeof(uint32) : sizeof(uint16));
-
-		return SetGeometryData(stDrawDesc, vertex_data_bytes, indexes_data_bytes);		
+		uiVerticesCount = _vertexCount;
+		uiIndexesCount = _indexCount;
+		uiVerticesDataSize = _vertexCount * _vertexBytes;
+		uiIndexesDataSize = _indexCount * _indexBytes;
+		return S_OK;
 	}
-	DGLE_RESULT DGLE_API GetBufferDimensions(uint& uiVerticesDataSize, uint& uiVerticesCount, uint& uiIndexesDataSize, uint& uiIndexesCount) override {return S_OK;}
 	DGLE_RESULT DGLE_API GetBufferDrawDataDesc(TDrawDataDesc& stDesc) override {return S_OK;}
 	DGLE_RESULT DGLE_API GetBufferDrawMode(E_CORE_RENDERER_DRAW_MODE& eMode) override {return S_OK;}
 	DGLE_RESULT DGLE_API GetBufferType(E_CORE_RENDERER_BUFFER_TYPE& eType) override {return S_OK;}

@@ -550,11 +550,11 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 	const GLuint Norm_ID = glGetUniformLocation(_programID, "NM");
 	glUniformMatrix4fv(Norm_ID, 1, GL_FALSE, &NM._1D[0]);
 
-	const TVector3 L = { 0.2f, 0.7f, 3.5f };
+	const TVector3 L = { 0.2f, 1.0f, 1.0f };
 	const TVector3 nL = L / L.Length();
 	const TVector3 nL_eyeSpace = MV.ApplyToVector(nL);
 	const GLuint nL_ID = glGetUniformLocation(_programID, "nL");
-	glUniform3f(nL_ID, nL_eyeSpace.x, nL_eyeSpace.y, nL_eyeSpace.z);
+	glUniform3f(nL_ID, nL.x, nL.y, nL.z);
 
 	glBindVertexArray(b->VAO_ID());
 	if (b->IndexDrawing())

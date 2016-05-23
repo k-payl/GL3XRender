@@ -9,7 +9,7 @@ See "DGLE.h" for more details.
 
 /*
 * Working with OpenGL context in windows through
-* wgl interface.
+* WGL interface.
 */
 
 #include "DGLE.h"
@@ -96,37 +96,37 @@ bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin
 			return false;
 		}
 
-		HGLRC hRC_fake = wglCreateContext(_hdc);
-		wglMakeCurrent(_hdc, hRC_fake);
+		HGLRC hrc_fake = wglCreateContext(_hdc);
+		wglMakeCurrent(_hdc, hrc_fake);
 
 		if (glewInit() != GLEW_OK)
 		{
 			LOG_FATAL("Couldn't initialize GLEW");
 			wglMakeCurrent(nullptr, nullptr);
-			wglDeleteContext(hRC_fake);
+			wglDeleteContext(hrc_fake);
 			return false;
 		}
 
 		wglMakeCurrent(nullptr, nullptr);
-		wglDeleteContext(hRC_fake);
+		wglDeleteContext(hrc_fake);
 
 	}
 	else
 	{
-		HWND hwnd_temp = CreateWindowEx(0, TEXT("STATIC"), NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
-		HDC hdc_temp = GetDC(hwnd_temp);
-		int closest_pixel_format_temp = ChoosePixelFormat(hdc_temp, &pfd);
-		SetPixelFormat(hdc_temp, closest_pixel_format_temp, &pfd);
-		HGLRC hRC_fake = wglCreateContext(hdc_temp);
-		wglMakeCurrent(hdc_temp, hRC_fake);
+		HWND hwnd_fake = CreateWindowEx(0, TEXT("STATIC"), NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
+		HDC hdc_fake = GetDC(hwnd_fake);
+		int closest_pixel_format_temp = ChoosePixelFormat(hdc_fake, &pfd);
+		SetPixelFormat(hdc_fake, closest_pixel_format_temp, &pfd);
+		HGLRC hrc_fake = wglCreateContext(hdc_fake);
+		wglMakeCurrent(hdc_fake, hrc_fake);
 
 		if (glewInit() != GLEW_OK)
 		{
 			LOG_FATAL("Couldn't initialize GLEW");
 			wglMakeCurrent(nullptr, nullptr);
-			wglDeleteContext(hRC_fake);
-			ReleaseDC(hwnd_temp, hdc_temp);
-			DestroyWindow(hwnd_temp);
+			wglDeleteContext(hrc_fake);
+			ReleaseDC(hwnd_fake, hdc_fake);
+			DestroyWindow(hwnd_fake);
 			return false;
 		}
 
@@ -153,7 +153,7 @@ bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin
 				WGL_DEPTH_BITS_ARB, 24,
 				WGL_STENCIL_BITS_ARB, 8,
 				WGL_SAMPLE_BUFFERS_ARB, 1, //Number of buffers (must be 1 at time of writing)
-				WGL_SAMPLES_ARB, samples, //Number of samples
+				WGL_SAMPLES_ARB, samples,
 				0
 			};
 
@@ -172,9 +172,9 @@ bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin
 		}
 
 		wglMakeCurrent(nullptr, nullptr);
-		wglDeleteContext(hRC_fake);
-		ReleaseDC(hwnd_temp, hdc_temp);
-		DestroyWindow(hwnd_temp);
+		wglDeleteContext(hrc_fake);
+		ReleaseDC(hwnd_fake, hdc_fake);
+		DestroyWindow(hwnd_fake);
 	}
 
 	if (!SetPixelFormat(_hdc, closest_pixel_format, &pfd))

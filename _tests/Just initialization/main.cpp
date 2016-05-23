@@ -1,5 +1,6 @@
 //
-// Test creation OpenGL 3.2 context in DGLE
+// Test creation OpenGL 3.2 context 
+// and working with it through DGLE
 //
 #include <DGLE.h>
 

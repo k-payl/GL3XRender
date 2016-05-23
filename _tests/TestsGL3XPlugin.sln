@@ -5,7 +5,9 @@ VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core geometry", "Core geometry\Core geometry.vcxproj", "{4D598F7D-AB73-4DE8-BB40-D4AFDCBBE9A7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JustInitialization", "JustInitialization\JustInitialization.vcxproj", "{A6D05371-ED5F-41DF-8EE7-4D86626CC122}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Just initialization", "Just initialization\Just initialization.vcxproj", "{A6D05371-ED5F-41DF-8EE7-4D86626CC122}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Textured", "Textured\Textured.vcxproj", "{145F5699-1672-4E11-8D28-F406DA6D16E7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +33,14 @@ Global
 		{A6D05371-ED5F-41DF-8EE7-4D86626CC122}.Release|x64.Build.0 = Release|x64
 		{A6D05371-ED5F-41DF-8EE7-4D86626CC122}.Release|x86.ActiveCfg = Release|Win32
 		{A6D05371-ED5F-41DF-8EE7-4D86626CC122}.Release|x86.Build.0 = Release|Win32
+		{145F5699-1672-4E11-8D28-F406DA6D16E7}.Debug|x64.ActiveCfg = Debug|x64
+		{145F5699-1672-4E11-8D28-F406DA6D16E7}.Debug|x64.Build.0 = Debug|x64
+		{145F5699-1672-4E11-8D28-F406DA6D16E7}.Debug|x86.ActiveCfg = Debug|Win32
+		{145F5699-1672-4E11-8D28-F406DA6D16E7}.Debug|x86.Build.0 = Debug|Win32
+		{145F5699-1672-4E11-8D28-F406DA6D16E7}.Release|x64.ActiveCfg = Release|x64
+		{145F5699-1672-4E11-8D28-F406DA6D16E7}.Release|x64.Build.0 = Release|x64
+		{145F5699-1672-4E11-8D28-F406DA6D16E7}.Release|x86.ActiveCfg = Release|Win32
+		{145F5699-1672-4E11-8D28-F406DA6D16E7}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

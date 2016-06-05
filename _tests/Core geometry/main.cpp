@@ -20,7 +20,7 @@ IRender3D *pRender3D;
 IRender *pRender;
 IResourceManager *pResMan;
 IInput* pInput;
-IMesh *pMesh;
+IMesh *pMesh1;
 uint uiCounter = 0;
 uint prevWindowWidth, prevWindowHeight;
 
@@ -31,7 +31,7 @@ void DGLE_API Init(void *pParameter)
 	pRender->GetRender3D(pRender3D);
 	pEngineCore->GetSubSystem(ESS_RESOURCE_MANAGER, reinterpret_cast<IEngineSubSystem *&>(pResMan));
 	pEngineCore->GetSubSystem(ESS_INPUT, reinterpret_cast<IEngineSubSystem *&>(pInput));
-	pResMan->Load(MODELS_PATH"teapot.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh), MMLF_FORCE_MODEL_TO_MESH);
+	pResMan->Load(MODELS_PATH"teapot.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh1), MMLF_FORCE_MODEL_TO_MESH);
 	//pResMan->GetDefaultResource(EOT_MESH, reinterpret_cast<IEngineBaseObject *&>(pMesh));
 }
 
@@ -60,7 +60,7 @@ void DGLE_API Render(void *pParameter)
 		MatrixIdentity() // zero point for all transformations
 	);
 
-	pMesh->Draw();
+	pMesh1->Draw();
 }
 
 // callback on switching to fullscreen event

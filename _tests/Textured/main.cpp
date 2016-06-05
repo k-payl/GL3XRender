@@ -19,8 +19,8 @@ IRender3D *pRender3D;
 IRender *pRender;
 IResourceManager *pResMan;
 IInput* pInput;
-IMesh *pMesh;
-ITexture *pTex;
+IMesh *pMesh1, *pMesh2;
+ITexture *pTex1, *pTex2;
 uint uiCounter = 0;
 uint prevWindowWidth, prevWindowHeight;
 
@@ -30,8 +30,11 @@ void DGLE_API Init(void *pParameter)
 	pRender->GetRender3D(pRender3D);
 	pEngineCore->GetSubSystem(ESS_RESOURCE_MANAGER, reinterpret_cast<IEngineSubSystem *&>(pResMan));
 	pEngineCore->GetSubSystem(ESS_INPUT, reinterpret_cast<IEngineSubSystem *&>(pInput));
-	pResMan->GetDefaultResource(EOT_MESH, reinterpret_cast<IEngineBaseObject *&>(pMesh));
-	pResMan->Load(TEXTURES_PATH"ss_color3.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex));
+	//pResMan->GetDefaultResource(EOT_MESH, reinterpret_cast<IEngineBaseObject *&>(pMesh1));
+	pResMan->Load(MODELS_PATH"bublik.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh1), MMLF_FORCE_MODEL_TO_MESH);
+	pResMan->Load(MODELS_PATH"plane100x100.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh2), MMLF_FORCE_MODEL_TO_MESH);
+	pResMan->Load(TEXTURES_PATH"ss_color2.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex1));
+	pResMan->Load(TEXTURES_PATH"ss_color3.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS);
 }
 
 void DGLE_API Update(void *pParameter)
@@ -53,14 +56,16 @@ void DGLE_API Render(void *pParameter)
 
 	pRender3D->SetMatrix
 	(
-		MatrixRotate(static_cast<float>(uiCounter), TVector3(0.f, 1.f, 0.f)) *
+		MatrixRotate(static_cast<float>(uiCounter * 0.5), TVector3(0.f, 1.f, 0.f)) *
 		MatrixRotate(static_cast<float>(25), TVector3(1.f, 0.f, 0.f)) *
 		MatrixTranslate(TVector3(.0f, -0.3f, -3.5f)) *
 		MatrixIdentity() // zero point for all transformations
 	);
 
-	pTex->Bind();
-	pMesh->Draw();
+	pTex1->Bind();
+	pMesh1->Draw();
+	pTex2->Bind();
+	pMesh2->Draw();
 }
 
 // callback on switching to fullscreen event
@@ -89,7 +94,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	if (GetEngine(DLL_PATH, pEngineCore))
 	{
-		if (SUCCEEDED(pEngineCore->InitializeEngine(NULL, APP_CAPTION, TEngineWindow(SCREEN_WIDTH, SCREEN_HEIGHT, false, false, MM_4X, EWF_ALLOW_SIZEING), 33u/*, static_cast<E_ENGINE_INIT_FLAGS>(EIF_LOAD_ALL_PLUGINS)*/)))
+		if (SUCCEEDED(pEngineCore->InitializeEngine(NULL, APP_CAPTION, TEngineWindow(SCREEN_WIDTH, SCREEN_HEIGHT, false, false, MM_4X, EWF_ALLOW_SIZEING), 33u, static_cast<E_ENGINE_INIT_FLAGS>(EIF_LOAD_ALL_PLUGINS | EIF_NO_SPLASH))))
 		{
 			pEngineCore->AddProcedure(EPT_INIT, &Init);
 			pEngineCore->AddProcedure(EPT_RENDER, &Render);

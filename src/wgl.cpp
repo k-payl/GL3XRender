@@ -65,7 +65,7 @@ static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFile
 bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin)
 {
 	const int major_version = 3;
-	const int minor_version = 3;
+	const int minor_version = 2;
 
 	PIXELFORMATDESCRIPTOR pfd{};
 	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);

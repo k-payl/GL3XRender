@@ -13,7 +13,7 @@ See "DGLE.h" for more details.
 using namespace std;
 
 
-#define SHADERS_DIRECTORY "..\\resources\\shaders\\"
+#define SHADERS_DIRECTORY "..\\..\\src\\shaders\\"
 #define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
 
 static IEngineCore *_core;
@@ -118,6 +118,22 @@ static void checkShaderError(uint id, GLenum constant)
 	}
 }
 
+static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, GLenum& sourceFormat)
+{
+	switch (eDataFormat)
+	{
+		case TDF_RGB8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_RGB;  break;
+		case TDF_RGBA8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_RGBA; break;
+		case TDF_ALPHA8:			VRAMFormat = GL_ALPHA8;	sourceFormat = GL_ALPHA; break;
+		case TDF_BGR8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_BGR; break;
+		case TDF_BGRA8:				VRAMFormat = GL_RGBA8;	sourceFormat = GL_BGRA; break;
+		//case TDF_DXT1:				break; ??
+		//case TDF_DXT5: break;
+		//case TDF_DEPTH_COMPONENT24: break;
+		//case TDF_DEPTH_COMPONENT32: break;
+		default: assert(false); break;
+	}
+}
 
 ////////////////////////////
 //        Geometry        //
@@ -178,11 +194,12 @@ public:
 		if (_bNotInitalizedCorrectlyYet)
 		{
 			if (_eBufferType == CRBT_SOFTWARE) return E_FAIL; // not implemented
-			const GLenum glBufferType = _eBufferType == CRBT_HARDWARE_STATIC ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
 
 			glBindVertexArray(_vao);
 
 			glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+
+			const GLenum glBufferType = _eBufferType == CRBT_HARDWARE_STATIC ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
 			glBufferData(GL_ARRAY_BUFFER, vertex_data_bytes, reinterpret_cast<const void*>(stDrawDesc.pData), glBufferType); // send data to VRAM
 
 			// Shader attrubute mapping:
@@ -196,15 +213,15 @@ public:
 			auto ptr = stDrawDesc.pData + stDrawDesc.uiNormalOffset;
 			if (stDrawDesc.uiNormalOffset != -1)
 			{
-				glEnableVertexAttribArray(3);
+				glEnableVertexAttribArray(1);
 				void *np = reinterpret_cast<void*>(stDrawDesc.pData + stDrawDesc.uiNormalOffset);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiNormalStride, reinterpret_cast<void*>(stDrawDesc.uiNormalOffset));
+				glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiNormalStride, reinterpret_cast<void*>(stDrawDesc.uiNormalOffset));
 			}
 			if (stDrawDesc.uiTextureVertexOffset != -1)
 			{
 				glEnableVertexAttribArray(2);
 				void *tp = reinterpret_cast<void*>(stDrawDesc.pData + stDrawDesc.uiTextureVertexOffset);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stDrawDesc.uiTextureVertexStride, reinterpret_cast<void*>(stDrawDesc.uiTextureVertexOffset));
+				glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stDrawDesc.uiTextureVertexStride, reinterpret_cast<void*>(stDrawDesc.uiTextureVertexOffset));
 			}
 			//if (stDrawDesc.uiColorOffset != -1)
 			//{
@@ -224,7 +241,7 @@ public:
 			_bNotInitalizedCorrectlyYet = false;
 		}
 		else // update data in buffer
-		{
+		{ // TODO
 		}
 		return S_OK;
 	}
@@ -256,18 +273,20 @@ public:
 
 class GLTexture final : public ICoreTexture
 {
-	bool _bCreated = true;
+	GLuint _textureID;
 
 public:
 
-	inline bool IsCreated() { return _bCreated; }
+	inline GLuint Texture_ID() { return _textureID; }
 
-	GLTexture(const uint8* pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags)
+	GLTexture()
 	{
+		glGenTextures(1, &_textureID);
 		LOG_INFO("GLTexture()");
 	}
 	~GLTexture()
 	{
+		glDeleteTextures(1, &_textureID);
 		LOG_INFO("~GLTexture()");
 	}
 
@@ -278,7 +297,18 @@ public:
 	DGLE_RESULT DGLE_API GetLoadFlags(E_TEXTURE_LOAD_FLAGS& eLoadFlags) override {return S_OK;}
 	DGLE_RESULT DGLE_API GetPixelData(uint8* pData, uint& uiDataSize, uint uiLodLevel) override {return S_OK;}
 	DGLE_RESULT DGLE_API SetPixelData(const uint8* pData, uint uiDataSize, uint uiLodLevel) override {return S_OK;}
-	DGLE_RESULT DGLE_API Reallocate(const uint8* pData, uint uiWidth, uint uiHeight, bool bMipMaps, E_TEXTURE_DATA_FORMAT eDataFormat) override {return S_OK;}
+	DGLE_RESULT DGLE_API Reallocate(const uint8* pData, uint uiWidth, uint uiHeight, bool bMipMaps, E_TEXTURE_DATA_FORMAT eDataFormat) override 
+	{
+		GLint VRAMFormat;
+		GLenum sourceFormat;
+		GLenum sourceType = GL_UNSIGNED_BYTE;
+		getGLFormats(eDataFormat, VRAMFormat, sourceFormat);
+		glBindTexture(GL_TEXTURE_2D, Texture_ID());
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, uiWidth, uiHeight, sourceFormat, sourceType, pData);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		return S_OK;
+	}
 	DGLE_RESULT DGLE_API GetBaseObject(IBaseRenderObjectContainer*& prObj) override {return S_OK;}
 	DGLE_RESULT DGLE_API Free() override
 	{
@@ -355,6 +385,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
 	glClearDepth(1.0);
+	glUseProgram(_programID); // we use only one shader
 
 	return S_OK;
 }
@@ -469,24 +500,53 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetRenderTarget(ICoreTexture*& prTexture)
 	return S_OK;
 }
 
-DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& prTex, const uint8* pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags)
+DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const uint8* pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags)
 { 
-	auto texture = new GLTexture(pData, uiWidth, uiHeight, bMipmapsPresented, eDataAlignment, eDataFormat, eLoadFlags);
-	if (!texture->IsCreated())
+	// Set neecessary parameters and prepare buffer
+	// 1. Filtering (bilinear, trilinear, anisotropic)
+	// 2. Wrap parameters
+	// 3. Compressing
+	// 4. Generate mipmaps
+
+	GLTexture* pGLTexture = new GLTexture();
+
+	glBindTexture(GL_TEXTURE_2D, pGLTexture->Texture_ID());
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	GLint wrap;
+	switch (eLoadFlags)
 	{
-		delete texture;
-		return S_FALSE;
+		case TLF_COORDS_REPEAT:			wrap = GL_REPEAT; break;
+		case TLF_COORDS_CLAMP:			wrap = GL_CLAMP_TO_BORDER; break;
+		case TLF_COORDS_MIRROR_REPEAT:	wrap = GL_MIRRORED_REPEAT; break;
+		case TLF_COORDS_MIRROR_CLAMP:	wrap = GL_MIRROR_CLAMP_TO_EDGE; break;
+		default:						wrap = GL_REPEAT; break;
 	}
-	prTex = texture;	
-	return S_OK;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
+
+	GLint VRAMFormat;
+	GLenum sourceFormat;
+	GLenum sourceType = GL_UNSIGNED_BYTE;
+	getGLFormats(eDataFormat, VRAMFormat, sourceFormat);	
+	glTexImage2D(GL_TEXTURE_2D, 0, VRAMFormat, uiWidth, uiHeight, 0, sourceFormat, sourceType, nullptr); // It only allocates memory
+
+	auto result = pGLTexture->Reallocate(pData, uiWidth, uiHeight, bMipmapsPresented, eDataFormat);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	pTex = pGLTexture;	
+	return result;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateGeometryBuffer(ICoreGeometryBuffer*& prBuffer, const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode, E_CORE_RENDERER_BUFFER_TYPE eType)
 { 
-	auto buffer = new GLGeometryBuffer(eType, uiIndicesCount > 0);
-	auto ret = buffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
-	prBuffer = buffer;
-	return ret;
+	GLGeometryBuffer* pGLBuffer = new GLGeometryBuffer(eType, uiIndicesCount > 0);
+	auto result = pGLBuffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
+	prBuffer = pGLBuffer;
+	return result;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::ToggleStateFilter(bool bEnabled)
@@ -534,9 +594,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_COR
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 { 
 	GLGeometryBuffer *b = static_cast<GLGeometryBuffer*>(pBuffer);
-	if (b == nullptr) return S_OK;
-
-	glUseProgram(_programID);
+	if (!b) return S_OK;
 
 	TMatrix4x4 MVP = MV * P;
 	const GLuint MVP_ID = glGetUniformLocation(_programID, "MVP");
@@ -618,6 +676,18 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetRasterizerState(TRasterizerStateDesc& st
 
 DGLE_RESULT DGLE_API GL3XCoreRender::BindTexture(ICoreTexture* pTex, uint uiTextureLayer)
 { 
+	GLTexture *pGLTex = static_cast<GLTexture*>(pTex);
+	
+	if (pGLTex == nullptr)
+		glBindTexture(GL_TEXTURE_2D, 0);
+	else
+	{
+		glActiveTexture(GL_TEXTURE0 + uiTextureLayer);
+		glBindTexture(GL_TEXTURE_2D, pGLTex->Texture_ID());
+		const GLuint uniform_ID = glGetUniformLocation(_programID, "texture0");
+		glUniform1i(uniform_ID, uiTextureLayer);
+	}
+	
 	return S_OK;
 }
 

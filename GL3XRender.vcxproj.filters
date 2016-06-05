@@ -21,8 +21,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />
-    <None Include="_tests\Core geometry\shaders\camera_frag.shader" />
-    <None Include="_tests\Core geometry\shaders\camera_vert.shader" />
+    <None Include="src\shaders\camera_frag.shader" />
+    <None Include="src\shaders\camera_vert.shader" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GLEW">

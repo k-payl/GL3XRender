@@ -21,6 +21,8 @@ class GL3XCoreRender final : public ICoreRenderer
 	TMatrix4x4 MV;
 	TMatrix4x4 P;
 
+	GLint _iMaxAnisotropy;
+
 	void _load_and_compile_shader(const char* filename, GLenum type);
 
 public:

@@ -34,7 +34,8 @@ void DGLE_API Init(void *pParameter)
 	pResMan->Load(MODELS_PATH"bublik.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh1), MMLF_FORCE_MODEL_TO_MESH);
 	pResMan->Load(MODELS_PATH"plane100x100.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh2), MMLF_FORCE_MODEL_TO_MESH);
 	pResMan->Load(TEXTURES_PATH"ss_color2.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex1));
-	pResMan->Load(TEXTURES_PATH"ss_color3.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS);
+	//pResMan->Load(TEXTURES_PATH"ss_color3.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS | /*TLF_FILTERING_TRILINEAR*/TLF_FILTERING_ANISOTROPIC | TLF_ANISOTROPY_16X);
+	pResMan->Load(TEXTURES_PATH"1.png", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS | TLF_FILTERING_ANISOTROPIC | TLF_ANISOTROPY_16X);
 }
 
 void DGLE_API Update(void *pParameter)

@@ -10,11 +10,13 @@ See "DGLE.h" for more details.
 #include "GL3XCoreRender.h"
 #include <vector>
 #include <assert.h>
+#include <algorithm>
 using namespace std;
 
 
 #define SHADERS_DIRECTORY "..\\..\\src\\shaders\\"
 #define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
+#define LOG_WARNING(txt) LogToDGLE(std::string(txt).c_str(), LT_WARNING, __FILE__, __LINE__)
 
 static IEngineCore *_core;
 // TODO: put shader text here 
@@ -133,6 +135,16 @@ static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, G
 		//case TDF_DEPTH_COMPONENT32: break;
 		default: assert(false); break;
 	}
+}
+
+uint8 GetPixelDataAlignmentIncrement(uint uiLineWidth, uint8 ui8BytesPerPixel, uint8 ui8Alignment)
+{
+	const uint8 a = (uiLineWidth * ui8BytesPerPixel) % ui8Alignment;
+
+	if (a != 0)
+		return ui8Alignment - a;
+	else
+		return a;
 }
 
 ////////////////////////////
@@ -274,12 +286,14 @@ public:
 class GLTexture final : public ICoreTexture
 {
 	GLuint _textureID;
+	bool _bGenerateMipmaps;
 
 public:
 
 	inline GLuint Texture_ID() { return _textureID; }
 
-	GLTexture()
+	GLTexture(bool bGenerateMipmaps) :
+		_bGenerateMipmaps(bGenerateMipmaps)
 	{
 		glGenTextures(1, &_textureID);
 		LOG_INFO("GLTexture()");
@@ -303,8 +317,12 @@ public:
 		GLenum sourceFormat;
 		GLenum sourceType = GL_UNSIGNED_BYTE;
 		getGLFormats(eDataFormat, VRAMFormat, sourceFormat);
+
 		glBindTexture(GL_TEXTURE_2D, Texture_ID());
+
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, uiWidth, uiHeight, sourceFormat, sourceType, pData);
+		if (_bGenerateMipmaps) glGenerateMipmap(GL_TEXTURE_2D);
+
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		return S_OK;
@@ -350,7 +368,7 @@ void GL3XCoreRender::_load_and_compile_shader(const char* filename, GLenum type)
 	checkShaderError(shd, GL_COMPILE_STATUS);
 }
 
-GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _programID(0), _fragID(0), _vertID(0)
+GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _programID(0), _fragID(0), _vertID(0), _iMaxAnisotropy(0)
 {
 	_core = pCore;
 }
@@ -381,6 +399,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	glAttachShader(_programID, _fragID);
 	glLinkProgram(_programID);
 	checkShaderError(_programID, GL_LINK_STATUS);
+
+	if (GLEW_EXT_texture_filter_anisotropic)
+		glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_iMaxAnisotropy);
+
 
 	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
@@ -502,42 +524,115 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetRenderTarget(ICoreTexture*& prTexture)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const uint8* pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags)
 { 
-	// Set neecessary parameters and prepare buffer
-	// 1. Filtering (bilinear, trilinear, anisotropic)
-	// 2. Wrap parameters
+
+	// TODO: implenment NPOT texture
+	assert(uiWidth == uiHeight);
+
+	// if bMipmapsPresented == true, we ignore this
+	// because this plugin supports hardware mipmap generation
+	// glGenerateMipmap() avaliable scince OpenGL 3.0
+
+	// 1. Filtering
+	// 2. Wraping
 	// 3. Compressing
 	// 4. Generate mipmaps
 
-	GLTexture* pGLTexture = new GLTexture();
+	GLTexture* pGLTexture = new GLTexture( eLoadFlags & TLF_GENERATE_MIPMAPS );
 
 	glBindTexture(GL_TEXTURE_2D, pGLTexture->Texture_ID());
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	
+	// filtering
+	if (eLoadFlags & TLF_FILTERING_ANISOTROPIC)
+	{
+		assert(GLEW_EXT_texture_filter_anisotropic == true);
 
-	GLint wrap;
+		GLint anisotropic_level = 4;
+		if (eLoadFlags & TLF_ANISOTROPY_2X)
+			anisotropic_level = 2;
+		else
+			if (eLoadFlags & TLF_ANISOTROPY_4X)
+				anisotropic_level = 4;
+			else
+				if (eLoadFlags & TLF_ANISOTROPY_8X)
+					anisotropic_level = 8;
+				else
+					if (eLoadFlags & TLF_ANISOTROPY_16X)
+						anisotropic_level = 16;
+
+		if (anisotropic_level > _iMaxAnisotropy)
+			anisotropic_level = _iMaxAnisotropy;
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropic_level);
+
+		if (eLoadFlags & TLF_GENERATE_MIPMAPS)
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		}
+		else
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);			
+		}
+	}
+	else
+	{
+		GLint glFilter;
+		if (eLoadFlags & TLF_GENERATE_MIPMAPS)
+		{
+			switch (eLoadFlags)
+			{
+				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST_MIPMAP_NEAREST; break;
+				case TLF_FILTERING_BILINEAR:	glFilter = GL_LINEAR_MIPMAP_NEAREST; break;
+				case TLF_FILTERING_TRILINEAR:
+				default:						glFilter = GL_LINEAR_MIPMAP_LINEAR; break;
+			}
+		}
+		else
+		{
+			switch (eLoadFlags)
+			{
+				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST; break;
+				case TLF_FILTERING_BILINEAR:
+				case TLF_FILTERING_TRILINEAR: // mustn't happen without mipmaps
+				default:						glFilter = GL_LINEAR; break;
+			}
+		}
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glFilter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glFilter);
+
+	}
+
+	// wraping
+	GLint glWrap;
 	switch (eLoadFlags)
 	{
-		case TLF_COORDS_REPEAT:			wrap = GL_REPEAT; break;
-		case TLF_COORDS_CLAMP:			wrap = GL_CLAMP_TO_BORDER; break;
-		case TLF_COORDS_MIRROR_REPEAT:	wrap = GL_MIRRORED_REPEAT; break;
-		case TLF_COORDS_MIRROR_CLAMP:	wrap = GL_MIRROR_CLAMP_TO_EDGE; break;
-		default:						wrap = GL_REPEAT; break;
+		case TLF_COORDS_CLAMP:			glWrap = GL_CLAMP_TO_BORDER; break;
+		case TLF_COORDS_MIRROR_REPEAT:	glWrap = GL_MIRRORED_REPEAT; break;
+		case TLF_COORDS_MIRROR_CLAMP:	glWrap = GL_MIRROR_CLAMP_TO_EDGE; break;
+		case TLF_COORDS_REPEAT:			
+		default:						glWrap = GL_REPEAT; break;
 	}
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
 
-	GLint VRAMFormat;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrap);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrap);
+
+	
+	GLint internalFormat;
 	GLenum sourceFormat;
 	GLenum sourceType = GL_UNSIGNED_BYTE;
-	getGLFormats(eDataFormat, VRAMFormat, sourceFormat);	
-	glTexImage2D(GL_TEXTURE_2D, 0, VRAMFormat, uiWidth, uiHeight, 0, sourceFormat, sourceType, nullptr); // It only allocates memory
+	getGLFormats(eDataFormat, internalFormat, sourceFormat);
+	
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, uiWidth, uiHeight, 0, sourceFormat, sourceType, nullptr); // allocate
+	//glTexStorage2D(GL_TEXTURE_2D, mipmaps, VRAMFormat, uiWidth, uiHeight); // 4.2	
 
-	auto result = pGLTexture->Reallocate(pData, uiWidth, uiHeight, bMipmapsPresented, eDataFormat);
+	auto result = pGLTexture->Reallocate(pData, uiWidth, uiHeight, bMipmapsPresented, eDataFormat); // upload
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	pTex = pGLTexture;	
+	pTex = pGLTexture;
 	return result;
 }
 
@@ -717,6 +812,26 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetDeviceMetric(E_CORE_RENDERER_METRIC_TYPE
 DGLE_RESULT DGLE_API GL3XCoreRender::IsFeatureSupported(E_CORE_RENDERER_FEATURE_TYPE eFeature, bool& bIsSupported)
 { 
 	bIsSupported = false;
+	switch (eFeature)
+	{
+	case CRFT_BUILTIN_FULLSCREEN_MODE: break;
+	case CRFT_BUILTIN_STATE_FILTER: break;
+	case CRFT_MULTISAMPLING: break;
+	case CRFT_VSYNC: break;
+	case CRFT_PROGRAMMABLE_PIPELINE: break;
+	case CRFT_LEGACY_FIXED_FUNCTION_PIPELINE_API: break;
+	case CRFT_BGRA_DATA_FORMAT: break;
+	case CRFT_TEXTURE_COMPRESSION: break;
+	case CRFT_NON_POWER_OF_TWO_TEXTURES: break;
+	case CRFT_DEPTH_TEXTURES: break;
+	case CRFT_TEXTURE_ANISOTROPY: break;
+	case CRFT_TEXTURE_MIPMAP_GENERATION: bIsSupported = true; break;
+	case CRFT_TEXTURE_MIRRORED_REPEAT: break;
+	case CRFT_TEXTURE_MIRROR_CLAMP: break;
+	case CRFT_GEOMETRY_BUFFER: break;
+	case CRFT_FRAME_BUFFER: break;
+	default: break;
+	}
 	return S_OK;
 }
 

@@ -13,8 +13,6 @@ See "DGLE.h" for more details.
 #include <algorithm>
 using namespace std;
 
-
-#define SHADERS_DIRECTORY "..\\..\\src\\shaders\\"
 #define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
 #define LOG_WARNING(txt) LogToDGLE(std::string(txt).c_str(), LT_WARNING, __FILE__, __LINE__)
 
@@ -25,8 +23,7 @@ extern void SwapBuffer();
 
 static IEngineCore *_core;
 
-// Vertex shader with input: Position
-static const char *p_v[] =
+static const char *p_v[] = // Vertex shader with input: Position
 {
 	"#version 330\n",
 	"\n",
@@ -42,8 +39,7 @@ static const char *p_v[] =
 	"\n"
 };
 
-// Fragment shader with const white color
-static const char *p_f[] =
+static const char *p_f[] = // Fragment shader with const white color
 {
 	"#version 330\n",
 	"\n",
@@ -57,8 +53,7 @@ static const char *p_f[] =
 	"\n"
 };
 
-// Vertex shader with input: Position, Normal
-static const char *pn_v[] =
+static const char *pn_v[] = // Vertex shader with input: Position, Normal
 {
 	"#version 330\n",
 	"\n",
@@ -80,8 +75,7 @@ static const char *pn_v[] =
 	"\n"
 };
 
-// Fragment shader with interpolated attributes: Normal
-static const char *pn_f[] =
+static const char *pn_f[] = // Fragment shader with interpolated attributes: Normal
 {
 	"#version 330\n",
 	"\n",
@@ -100,8 +94,7 @@ static const char *pn_f[] =
 	"\n"
 };
 
-// Vertex shader with input: Position, Normal, Texture coordiantes
-static const char *pnt_v[] =
+static const char *pnt_v[] = // Vertex shader with input: Position, Normal, Texture coordiantes
 {
 	"#version 330\n",
 	"\n",
@@ -126,8 +119,7 @@ static const char *pnt_v[] =
 	"\n"
 };
 
-// Fragment shader with interpolated attributes: Normal, Texture coordiantes
-static const char *pnt_f[] =
+static const char *pnt_f[] = // Fragment shader with interpolated attributes: Normal, Texture coordiantes
 {
 	"#version 330\n",
 	"\n",
@@ -149,8 +141,7 @@ static const char *pnt_f[] =
 	"\n"
 };
 
-// Vertex shader with input: Position, Texture coordiantes
-static const char *pt_v[] =
+static const char *pt_v[] = // Vertex shader with input: Position, Texture coordiantes
 {
 	"#version 330\n",
 	"\n",
@@ -170,8 +161,7 @@ static const char *pt_v[] =
 	"\n"
 };
 
-// Fragment shader with interpolated attributes: Texture coordiantes
-static const char *pt_f[] =
+static const char *pt_f[] = // Fragment shader with interpolated attributes: Texture coordiantes
 {
 	"#version 330\n",
 	"\n",
@@ -260,10 +250,10 @@ static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, G
 class GLGeometryBuffer final : public ICoreGeometryBuffer
 {
 	bool _bNotInitalizedCorrectlyYet;
-	GLsizei _vertexCount;
-	GLsizei _indexCount;
 	uint _vertexBytes;
 	uint _indexBytes;
+	GLsizei _vertexCount;
+	GLsizei _indexCount;
 	GLuint _vao;
 	GLuint _vbo;
 	GLuint _ibo;
@@ -271,8 +261,8 @@ class GLGeometryBuffer final : public ICoreGeometryBuffer
 	E_CORE_RENDERER_DRAW_MODE _eDrawMode;
 	GL3XCoreRender * const _pRnd;
 	CORE_GEOMETRY_ATTRIBUTES_PRESENTED _attribs_presented;
-	// We don't keep TDrawDataDesc
 	int activated_attributes[3];
+	// We don't keep TDrawDataDesc
 
 public:
 
@@ -305,11 +295,7 @@ public:
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
 		if (indexBuffer) glGenBuffers(1, &_ibo);
-		//memset(&activated_attributes, 0, _countof(activated_attributes));
-		activated_attributes[0] = 0;
-		activated_attributes[1] = 0;
-		activated_attributes[2] = 0;
-		
+		memset(activated_attributes, 0, _countof(activated_attributes) * sizeof(decltype(activated_attributes)));		
 		LOG_INFO("GLGeometryBuffer()");
 	}
 
@@ -318,7 +304,6 @@ public:
 		if (_ibo!=0) glDeleteBuffers(1, &_ibo);
 		glDeleteBuffers(1, &_vbo);
 		glDeleteVertexArrays(1, &_vao);
-
 		LOG_INFO("~GLGeometryBuffer()");
 	}
 
@@ -339,7 +324,6 @@ public:
 			if (_eBufferType == CRBT_SOFTWARE) return E_FAIL; // not implemented
 
 			glBindVertexArray(_vao);
-
 			glBindBuffer(GL_ARRAY_BUFFER, _vbo);
 
 			const GLenum glBufferType = _eBufferType == CRBT_HARDWARE_STATIC ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
@@ -487,16 +471,6 @@ void GL3XCoreRender::_delete_shader(const GLShader& shader)
 	if (shader.programID != 0) glDeleteProgram(shader.programID);
 }
 
-//GLShader* GL3XCoreRender::GetShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED input_attributes)
-//{
-//	switch (input_attributes)
-//	{
-//		case GB_POS_NORM: return &_PN_shader;  break;
-//		case GB_POS_NORM_TEX: return &_PNT_shader; break;
-//		default: assert(false); return &_PN_shader; break;
-//	}
-//}
-
 GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _PN_shader{ 0,0,0 }, _PNT_shader{0, 0, 0}, _iMaxAnisotropy(0)
 {
 	_core = pCore;
@@ -586,7 +560,6 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Clear(bool bColor, bool bDepth, bool bStenc
 	if (bDepth) mask |= GL_DEPTH_BUFFER_BIT;
 	if (bStencil) mask |= GL_STENCIL_BUFFER_BIT;
 	glClear(mask);
-
 	return S_OK;
 }
 
@@ -602,7 +575,6 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetViewport(uint& x, uint& y, uint& width, 
 	glGetIntegerv(GL_VIEWPORT, vp);
 	x = vp[0]; y = vp[1];
 	width = vp[2]; height = vp[3];
-
 	return S_OK;
 }
 
@@ -770,9 +742,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateGeometryBuffer(ICoreGeometryBuffer*& prBuffer, const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode, E_CORE_RENDERER_BUFFER_TYPE eType)
 { 
 	GLGeometryBuffer* pGLBuffer = new GLGeometryBuffer(eType, uiIndicesCount > 0, this);
-	auto result = pGLBuffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
 	prBuffer = pGLBuffer;
-	return result;
+	return pGLBuffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::ToggleStateFilter(bool bEnabled)
@@ -801,8 +772,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::SetMatrix(const TMatrix4x4& stMatrix, E_MAT
 	{
 		case MT_MODELVIEW: MV = stMatrix; break;
 		case MT_PROJECTION: P = stMatrix; break;
-		case MT_TEXTURE: // TODO:  
-			break;
+		case MT_TEXTURE: /* TODO: */ break;
 	}
 	return S_OK;
 }
@@ -813,8 +783,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetMatrix(TMatrix4x4& stMatrix, E_MATRIX_TY
 	{
 		case MT_MODELVIEW: stMatrix = MV; break;
 		case MT_PROJECTION: stMatrix = P; break;
-		case MT_TEXTURE: // TODO:  
-			break;
+		case MT_TEXTURE: /* TODO: */ break;
 	}
 	return S_OK;
 }

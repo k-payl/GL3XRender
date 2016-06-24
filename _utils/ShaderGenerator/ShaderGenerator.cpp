@@ -29,9 +29,9 @@ void write_shader(ofstream& file, const string& shader_filename, const string& v
 {
 	ifstream shd(shader_filename);
 
-	file << "// " << comment << endl;
 	//file << "// Auto generated with ShaderGenerator" << endl;
-	file << "static const char *" << var_name << "[] =" << endl;
+	file << "static const char *" << var_name << "[] = " ;
+	file << "// " << comment << endl;
 	file << "{" << endl;
 
 	string line;

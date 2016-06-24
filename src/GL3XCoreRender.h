@@ -1,6 +1,6 @@
 /**
 \author		Konstantin Pajl aka Consta
-\date		21.05.2016 (c)Andrey Korotkov
+\date		12.06.2016 (c)Andrey Korotkov
 
 This file is a part of DGLE project and is distributed
 under the terms of the GNU Lesser General Public License.
@@ -13,19 +13,47 @@ See "DGLE.h" for more details.
 #include "GL/glew.h"
 using namespace DGLE;
 
+
+struct GLShader
+{
+	GLuint programID;
+	GLuint fragID;
+	GLuint vertID;
+
+	bool normalsInputAttribute;
+	bool textCoordsInputAttribute;
+};
+
+enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
+{
+	CGAP_POS_NORM =		0b00000011, // valid combinations
+	CGAP_POS_NORM_TEX =	0b00000111,
+
+	CGAP_NONE =			0b00000000, // utility combinations
+	CGAP_POS =			0b00000001,
+	CGAP_NORM =			0b00000010,
+	CGAP_TEX =			0b00000100,
+};
+
 class GL3XCoreRender final : public ICoreRenderer
 {
-	GLuint _programID;
-	GLuint _fragID;
-	GLuint _vertID;
+	GLShader _P_shader;
+	GLShader _PN_shader;
+	GLShader _PNT_shader;
+	GLShader _PT_shader;
 	TMatrix4x4 MV;
 	TMatrix4x4 P;
-
 	GLint _iMaxAnisotropy;
+	GLuint tex_ID_last_binded;
+	uint tex_layer_was_binded;
 
-	void _load_and_compile_shader(const char* filename, GLenum type);
+	void _load_and_create_shaders(GLShader& shader, const char *v[], size_t vn, const char *f[], size_t fn);
+	void _delete_shader(const GLShader& shader);
+	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on);
 
 public:
+
+	GLShader* GetShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED);
 
 	GL3XCoreRender(IEngineCore *pCore);
 	

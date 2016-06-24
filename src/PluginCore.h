@@ -1,6 +1,6 @@
 /**
 \author		Konstantin Pajl aka Consta
-\date		21.05.2016 (c)Andrey Korotkov
+\date		11.06.2016 (c)Andrey Korotkov
 
 This file is a part of DGLE project and is distributed
 under the terms of the GNU Lesser General Public License.
@@ -14,7 +14,7 @@ using namespace DGLE;
 
 #define PLUGIN_NAME				"GL3XRender"
 #define PLUGIN_VERSION			"0.01 (" __DATE__ ")"
-#define PLUGIN_VENDOR			"Push pop"
+#define PLUGIN_VENDOR			"Consta"
 #define PLUGIN_DESCRIPTION		"OpenGL 3.2 and above core render implementation for DGLE"
 #define PLUGIN_INTERFACE_NAME	"ISubSystemPlugin"
 

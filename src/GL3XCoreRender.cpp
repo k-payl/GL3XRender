@@ -1,6 +1,6 @@
 /**
 \author		Konstantin Pajl aka Consta
-\date		21.05.2016 (c)Andrey Korotkov
+\date		12.06.2016 (c)Andrey Korotkov
 
 This file is a part of DGLE project and is distributed
 under the terms of the GNU Lesser General Public License.
@@ -18,13 +18,176 @@ using namespace std;
 #define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
 #define LOG_WARNING(txt) LogToDGLE(std::string(txt).c_str(), LT_WARNING, __FILE__, __LINE__)
 
-static IEngineCore *_core;
-// TODO: put shader text here 
-
 extern bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin);
-extern void MakeCurrent(); // realy need??
+extern void MakeCurrent();
 extern void FreeGL();
 extern void SwapBuffer();
+
+static IEngineCore *_core;
+
+// Vertex shader with input: Position
+static const char *p_v[] =
+{
+	"#version 330\n",
+	"\n",
+	"layout(location = 0) in vec3 Position;\n",
+	"\n",
+	"uniform mat4 MVP;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	gl_Position = MVP * vec4(Position, 1.0);\n",
+	"}\n",
+	"\n"
+};
+
+// Fragment shader with const white color
+static const char *p_f[] =
+{
+	"#version 330\n",
+	"\n",
+	"out vec4 color;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	color = vec4(1, 1, 1, 1);\n",
+	"}\n",
+	"\n"
+};
+
+// Vertex shader with input: Position, Normal
+static const char *pn_v[] =
+{
+	"#version 330\n",
+	"\n",
+	"layout(location = 0) in vec3 Position;\n",
+	"layout(location = 1) in vec3 Normal;\n",
+	"\n",
+	"uniform mat4 MVP;\n",
+	"uniform mat4 NM;\n",
+	"\n",
+	"smooth out vec3 N;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	N = (NM * vec4(Normal, 0)).xyz;\n",
+	"\n",
+	"	gl_Position = MVP * vec4(Position, 1.0);\n",
+	"}\n",
+	"\n"
+};
+
+// Fragment shader with interpolated attributes: Normal
+static const char *pn_f[] =
+{
+	"#version 330\n",
+	"\n",
+	"smooth in vec3 N;\n",
+	"\n",
+	"uniform vec3 nL;\n",
+	"\n",
+	"out vec4 color;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	vec3 nN = normalize(N);\n",
+	"	color = vec4(vec3(max(dot(nN, nL), 0)), 1);\n",
+	"}\n",
+	"\n"
+};
+
+// Vertex shader with input: Position, Normal, Texture coordiantes
+static const char *pnt_v[] =
+{
+	"#version 330\n",
+	"\n",
+	"layout(location = 0) in vec3 Position;\n",
+	"layout(location = 1) in vec3 Normal;\n",
+	"layout(location = 2) in vec2 TexCoord;\n",
+	"\n",
+	"uniform mat4 MVP;\n",
+	"uniform mat4 NM;\n",
+	"\n",
+	"smooth out vec3 N;\n",
+	"smooth out vec2 UV;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	N = (NM * vec4(Normal, 0)).xyz;\n",
+	"	UV = TexCoord;\n",
+	"\n",
+	"	gl_Position = MVP * vec4(Position, 1.0);\n",
+	"}\n",
+	"\n"
+};
+
+// Fragment shader with interpolated attributes: Normal, Texture coordiantes
+static const char *pnt_f[] =
+{
+	"#version 330\n",
+	"\n",
+	"smooth in vec3 N;\n",
+	"smooth in vec2 UV;\n",
+	"\n",
+	"uniform vec3 nL;\n",
+	"uniform sampler2D texture0;\n",
+	"\n",
+	"out vec4 color;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	vec3 nN = normalize(N);\n",
+	"	vec4 Texture0Color = texture(texture0, UV);\n",
+	"	color = vec4(vec3(max(dot(nN, nL), 0)), 1) * Texture0Color;\n",
+	"}\n",
+	"\n"
+};
+
+// Vertex shader with input: Position, Texture coordiantes
+static const char *pt_v[] =
+{
+	"#version 330\n",
+	"\n",
+	"layout(location = 0) in vec3 Position;\n",
+	"layout(location = 2) in vec2 TexCoord;\n",
+	"\n",
+	"uniform mat4 MVP;\n",
+	"\n",
+	"smooth out vec2 UV;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	UV = TexCoord;\n",
+	"	gl_Position = MVP * vec4(Position, 1.0);\n",
+	"}\n",
+	"\n"
+};
+
+// Fragment shader with interpolated attributes: Texture coordiantes
+static const char *pt_f[] =
+{
+	"#version 330\n",
+	"\n",
+	"smooth in vec2 UV;\n",
+	"\n",
+	"uniform sampler2D texture0;\n",
+	"\n",
+	"out vec4 color;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	color = texture(texture0, UV);\n",
+	"}\n",
+	"\n"
+};
 
 static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
 {
@@ -41,54 +204,6 @@ static GLsizei vertexSize(const TDrawDataDesc& stDrawDesc)
 			(stDrawDesc.uiColorOffset != -1 ? 4 : 0) +
 			(stDrawDesc.uiTangentOffset != -1 ? 3 : 0) +
 			(stDrawDesc.uiBinormalOffset != -1 ? 3 : 0));
-}
-
-static vector<string> exact_lines(const char *str)
-{
-	vector<string> ret;
-	char *search = const_cast<char*>(str);
-	char *freeze = search;
-
-	while (*search)
-	{
-		if (*search == '\n')
-		{
-			ret.push_back(string(freeze, search - freeze + 1));
-			ret.back().back() = '\n';
-			freeze = search + 1;
-		}
-
-		if (*search == '\r')
-		{
-			if (*(search + 1) == '\n')
-			{
-				ret.push_back(string(freeze, search - freeze + 1));
-				ret.back().back() = '\n';
-				freeze = search + 2;
-				search++; // Note the 2! CRLF is 2 characters!
-			}
-			else
-			{
-				ret.push_back(string(freeze, search - freeze));
-				ret.back().back() = '\n';
-				freeze = search + 1;
-			}
-		}
-		search++;
-	}
-
-	ret.push_back(string(freeze, search - freeze + 1));
-	ret.back().back() = '\n';
-
-	return ret;
-}
-
-static vector<const char*> make_ptr_vector(const vector<string>& str_list)
-{
-	vector<const char*> v{ str_list.size() + 1, nullptr };
-	for (size_t i = 0; i < str_list.size(); i++) 
-		v[i] = str_list[i].c_str();
-	return v;
 }
 
 static void checkShaderError(uint id, GLenum constant)
@@ -137,15 +252,6 @@ static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, G
 	}
 }
 
-uint8 GetPixelDataAlignmentIncrement(uint uiLineWidth, uint8 ui8BytesPerPixel, uint8 ui8Alignment)
-{
-	const uint8 a = (uiLineWidth * ui8BytesPerPixel) % ui8Alignment;
-
-	if (a != 0)
-		return ui8Alignment - a;
-	else
-		return a;
-}
 
 ////////////////////////////
 //        Geometry        //
@@ -163,21 +269,46 @@ class GLGeometryBuffer final : public ICoreGeometryBuffer
 	GLuint _ibo;
 	E_CORE_RENDERER_BUFFER_TYPE _eBufferType;
 	E_CORE_RENDERER_DRAW_MODE _eDrawMode;
+	GL3XCoreRender * const _pRnd;
+	CORE_GEOMETRY_ATTRIBUTES_PRESENTED _attribs_presented;
 	// We don't keep TDrawDataDesc
+	int activated_attributes[3];
 
 public:
+
+	const static int POSITION_ATTRIBUTE = 0;
+	const static int NORMALS_ATTRIBUTE = 1;
+	const static int TEXCOORDS_ATTRIBUTE = 2;
 
 	inline GLuint VAO_ID() { return _vao; }
 	inline bool IndexDrawing() { return _ibo > 0; }
 	inline GLsizei VertexCount() { return _vertexCount; }
 	inline GLsizei IndexCount() { return _indexCount; }
+	inline CORE_GEOMETRY_ATTRIBUTES_PRESENTED GetAttributes() { return _attribs_presented; }
+	inline void ToggleAttribInVAO(int attrib_ind, bool value)
+	{
+		if (value && !activated_attributes[attrib_ind])
+		{
+			activated_attributes[attrib_ind] = true;
+			glEnableVertexAttribArray(attrib_ind);
+		}
+		else if (!value && activated_attributes[attrib_ind])
+		{
+			activated_attributes[attrib_ind] = false;
+			glDisableVertexAttribArray(attrib_ind);
+		}
+	}
 
-	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer) :
-		_bNotInitalizedCorrectlyYet(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType)
+	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd) :
+		_bNotInitalizedCorrectlyYet(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE)
 	{		
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
 		if (indexBuffer) glGenBuffers(1, &_ibo);
+		//memset(&activated_attributes, 0, _countof(activated_attributes));
+		activated_attributes[0] = 0;
+		activated_attributes[1] = 0;
+		activated_attributes[2] = 0;
 		
 		LOG_INFO("GLGeometryBuffer()");
 	}
@@ -214,33 +345,23 @@ public:
 			const GLenum glBufferType = _eBufferType == CRBT_HARDWARE_STATIC ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
 			glBufferData(GL_ARRAY_BUFFER, vertex_data_bytes, reinterpret_cast<const void*>(stDrawDesc.pData), glBufferType); // send data to VRAM
 
-			// Shader attrubute mapping:
-			// 0 - position
-			// 1 - normal
-			// 2 - texture coordinates
-			// 3 - color
-
-			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, stDrawDesc.bVertices2D ? 2 : 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiVertexStride, reinterpret_cast<void*>(0));
-			auto ptr = stDrawDesc.pData + stDrawDesc.uiNormalOffset;
+			ToggleAttribInVAO(POSITION_ATTRIBUTE, true);
+			_attribs_presented = static_cast<CORE_GEOMETRY_ATTRIBUTES_PRESENTED>(_attribs_presented | CGAP_POS);
+
 			if (stDrawDesc.uiNormalOffset != -1)
 			{
-				glEnableVertexAttribArray(1);
-				void *np = reinterpret_cast<void*>(stDrawDesc.pData + stDrawDesc.uiNormalOffset);
-				glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiNormalStride, reinterpret_cast<void*>(stDrawDesc.uiNormalOffset));
+				glVertexAttribPointer(NORMALS_ATTRIBUTE, 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiNormalStride, reinterpret_cast<void*>(stDrawDesc.uiNormalOffset));
+				ToggleAttribInVAO(NORMALS_ATTRIBUTE, true);
+				_attribs_presented = static_cast<CORE_GEOMETRY_ATTRIBUTES_PRESENTED>(_attribs_presented | CGAP_NORM);
 			}
 			if (stDrawDesc.uiTextureVertexOffset != -1)
 			{
-				glEnableVertexAttribArray(2);
-				void *tp = reinterpret_cast<void*>(stDrawDesc.pData + stDrawDesc.uiTextureVertexOffset);
-				glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stDrawDesc.uiTextureVertexStride, reinterpret_cast<void*>(stDrawDesc.uiTextureVertexOffset));
+				glVertexAttribPointer(TEXCOORDS_ATTRIBUTE, 2, GL_FLOAT, GL_FALSE, stDrawDesc.uiTextureVertexStride, reinterpret_cast<void*>(stDrawDesc.uiTextureVertexOffset));
+				ToggleAttribInVAO(TEXCOORDS_ATTRIBUTE, true);
+				_attribs_presented = static_cast<CORE_GEOMETRY_ATTRIBUTES_PRESENTED>(_attribs_presented | CGAP_TEX);
 			}
-			//if (stDrawDesc.uiColorOffset != -1)
-			//{
-			//	glEnableVertexAttribArray(3);
-			//	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stDrawDesc.uiColorStride, reinterpret_cast<void*>(stDrawDesc.uiColorOffset));
-			//}
-			// ...
+			assert(_attribs_presented & CGAP_POS);
 			// TODO: implement tangent and binormal
 
 			if (indexes_data_bytes > 0)
@@ -342,33 +463,41 @@ public:
 //         Render       //
 //////////////////////////
 
-void GL3XCoreRender::_load_and_compile_shader(const char* filename, GLenum type)
+void GL3XCoreRender::_load_and_create_shaders(GLShader& shader, const char *v[], size_t vn, const char *f[], size_t fn)
 {
-	IMainFileSystem *pFileSystem;
-	_core->GetSubSystem(ESS_FILE_SYSTEM, reinterpret_cast<IEngineSubSystem *&>(pFileSystem));
-
-	IFile *pFile;
-	pFileSystem->LoadFile(filename, pFile);
-
-	uint32 size;
-	pFile->GetSize(size);
-
-	string buf(size + 1, '\0');
-	uint read;
-	pFile->Read(&buf[0], size, read);
-	pFileSystem->FreeFile(pFile);
-
-	auto string_vec = exact_lines(buf.c_str());
-	auto ptr_vec = make_ptr_vector(string_vec);
-
-	GLuint& shd = type == GL_VERTEX_SHADER ? _vertID : _fragID;
-	shd = glCreateShader(type);
-	glShaderSource(shd, ptr_vec.size() - 1, &ptr_vec[0], nullptr);
-	glCompileShader(shd);
-	checkShaderError(shd, GL_COMPILE_STATUS);
+	shader.programID = glCreateProgram();
+	shader.vertID = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(shader.vertID, vn, v, nullptr);
+	glCompileShader(shader.vertID);
+	checkShaderError(shader.vertID, GL_COMPILE_STATUS);
+	shader.fragID = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(shader.fragID, fn, f, nullptr);
+	glCompileShader(shader.fragID);
+	checkShaderError(shader.fragID, GL_COMPILE_STATUS);
+	glAttachShader(shader.programID, shader.vertID);
+	glAttachShader(shader.programID, shader.fragID);
+	glLinkProgram(shader.programID);
+	checkShaderError(shader.programID, GL_LINK_STATUS);
 }
 
-GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _programID(0), _fragID(0), _vertID(0), _iMaxAnisotropy(0)
+void GL3XCoreRender::_delete_shader(const GLShader& shader)
+{
+	if (shader.vertID != 0) glDeleteShader(shader.vertID);
+	if (shader.fragID != 0) glDeleteShader(shader.fragID);
+	if (shader.programID != 0) glDeleteProgram(shader.programID);
+}
+
+//GLShader* GL3XCoreRender::GetShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED input_attributes)
+//{
+//	switch (input_attributes)
+//	{
+//		case GB_POS_NORM: return &_PN_shader;  break;
+//		case GB_POS_NORM_TEX: return &_PNT_shader; break;
+//		default: assert(false); return &_PN_shader; break;
+//	}
+//}
+
+GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _PN_shader{ 0,0,0 }, _PNT_shader{0, 0, 0}, _iMaxAnisotropy(0)
 {
 	_core = pCore;
 }
@@ -392,33 +521,33 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	sprintf(buffer, OGLI"%i.%i", major, minor);
 	LOG_INFO(string(buffer));
 
-	_programID = glCreateProgram();
-	_load_and_compile_shader(SHADERS_DIRECTORY"camera_vert.shader", GL_VERTEX_SHADER);
-	_load_and_compile_shader(SHADERS_DIRECTORY"camera_frag.shader", GL_FRAGMENT_SHADER);
-	glAttachShader(_programID, _vertID);
-	glAttachShader(_programID, _fragID);
-	glLinkProgram(_programID);
-	checkShaderError(_programID, GL_LINK_STATUS);
+	_load_and_create_shaders(_P_shader, p_v, _countof(p_v) - 1, p_f, _countof(p_f) - 1);
+	_load_and_create_shaders(_PN_shader, pn_v, _countof(pn_v) - 1, pn_f, _countof(pn_f) - 1);
+	_load_and_create_shaders(_PNT_shader, pnt_v, _countof(pnt_v) - 1, pnt_f, _countof(pnt_f) - 1);
+	_load_and_create_shaders(_PT_shader, pt_v, _countof(pt_v) - 1, pt_f, _countof(pt_f) - 1);
+
+	_P_shader.normalsInputAttribute = false; _P_shader.textCoordsInputAttribute = false;
+	_PN_shader.normalsInputAttribute = true; _PN_shader.textCoordsInputAttribute = false;
+	_PNT_shader.normalsInputAttribute = true; _PNT_shader.textCoordsInputAttribute = true;
+	_PT_shader.normalsInputAttribute = false; _PT_shader.textCoordsInputAttribute = true;
 
 	if (GLEW_EXT_texture_filter_anisotropic)
 		glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_iMaxAnisotropy);
 
-
 	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
 	glClearDepth(1.0);
-	glUseProgram(_programID); // we use only one shader
 
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Finalize()
-{ 
-	if (_vertID != 0) glDeleteShader(_vertID);
-	if (_fragID != 0) glDeleteShader(_fragID);
-	if (_programID != 0) glDeleteProgram(_programID);
+{
+	_delete_shader(_P_shader);
+	_delete_shader(_PN_shader);
+	_delete_shader(_PNT_shader);
+	_delete_shader(_PT_shader);
 	FreeGL();
-
 	return S_OK;
 }
 
@@ -489,21 +618,29 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetScissorRectangle(uint& x, uint& y, uint&
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetLineWidth(float fWidth)
 { 
+	glLineWidth(fWidth);
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetLineWidth(float& fWidth)
 { 
+	GLfloat value;
+	glGetFloatv(GL_LINE_WIDTH, &value);
+	fWidth = value;
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetPointSize(float fSize)
 { 
+	glPointSize(fSize);
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetPointSize(float& fSize)
 { 
+	GLfloat value;
+	glGetFloatv(GL_POINT_SIZE, &value);
+	fSize = value;
 	return S_OK;
 }
 
@@ -526,18 +663,20 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 { 
 
 	// TODO: implenment NPOT texture
-	assert(uiWidth == uiHeight);
+	bool powerOfTwo_h = !(uiHeight == 0) && !(uiHeight & (uiHeight - 1));
+	bool powerOfTwo_w = !(uiWidth == 0) && !(uiWidth & (uiWidth - 1));
+	assert(powerOfTwo_h && powerOfTwo_w);
 
 	// if bMipmapsPresented == true, we ignore this
 	// because this plugin supports hardware mipmap generation
-	// glGenerateMipmap() avaliable scince OpenGL 3.0
+	// glGenerateMipmap() avaliable since OpenGL 3.0
 
 	// 1. Filtering
 	// 2. Wraping
 	// 3. Compressing
 	// 4. Generate mipmaps
 
-	GLTexture* pGLTexture = new GLTexture( eLoadFlags & TLF_GENERATE_MIPMAPS );
+	GLTexture* pGLTexture = new GLTexture( (eLoadFlags & TLF_GENERATE_MIPMAPS) != 0 );
 
 	glBindTexture(GL_TEXTURE_2D, pGLTexture->Texture_ID());
 
@@ -545,23 +684,15 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 	// filtering
 	if (eLoadFlags & TLF_FILTERING_ANISOTROPIC)
 	{
-		assert(GLEW_EXT_texture_filter_anisotropic == true);
+		assert(GLEW_EXT_texture_filter_anisotropic);
 
 		GLint anisotropic_level = 4;
-		if (eLoadFlags & TLF_ANISOTROPY_2X)
-			anisotropic_level = 2;
-		else
-			if (eLoadFlags & TLF_ANISOTROPY_4X)
-				anisotropic_level = 4;
-			else
-				if (eLoadFlags & TLF_ANISOTROPY_8X)
-					anisotropic_level = 8;
-				else
-					if (eLoadFlags & TLF_ANISOTROPY_16X)
-						anisotropic_level = 16;
+		if (eLoadFlags & TLF_ANISOTROPY_2X)	anisotropic_level = 2;
+		else if (eLoadFlags & TLF_ANISOTROPY_4X) anisotropic_level = 4;
+		else if (eLoadFlags & TLF_ANISOTROPY_8X) anisotropic_level = 8;
+		else if (eLoadFlags & TLF_ANISOTROPY_16X) anisotropic_level = 16;
 
-		if (anisotropic_level > _iMaxAnisotropy)
-			anisotropic_level = _iMaxAnisotropy;
+		if (anisotropic_level > _iMaxAnisotropy) anisotropic_level = _iMaxAnisotropy;
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropic_level);
 
@@ -638,7 +769,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateGeometryBuffer(ICoreGeometryBuffer*& prBuffer, const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode, E_CORE_RENDERER_BUFFER_TYPE eType)
 { 
-	GLGeometryBuffer* pGLBuffer = new GLGeometryBuffer(eType, uiIndicesCount > 0);
+	GLGeometryBuffer* pGLBuffer = new GLGeometryBuffer(eType, uiIndicesCount > 0, this);
 	auto result = pGLBuffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
 	prBuffer = pGLBuffer;
 	return result;
@@ -678,6 +809,13 @@ DGLE_RESULT DGLE_API GL3XCoreRender::SetMatrix(const TMatrix4x4& stMatrix, E_MAT
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetMatrix(TMatrix4x4& stMatrix, E_MATRIX_TYPE eMatType)
 { 
+	switch (eMatType)
+	{
+		case MT_MODELVIEW: stMatrix = MV; break;
+		case MT_PROJECTION: stMatrix = P; break;
+		case MT_TEXTURE: // TODO:  
+			break;
+	}
 	return S_OK;
 }
 
@@ -686,46 +824,103 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_COR
 	return S_OK;
 }
 
+GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on)
+{
+	if (texture_binded && light_on)
+	{		
+		if (attributes == CGAP_POS_NORM) return &_PN_shader;
+		if (attributes == CGAP_POS_NORM_TEX) return &_PNT_shader;
+		assert(false);
+	}
+	else if (!texture_binded && light_on)
+	{
+		if (attributes == CGAP_POS_NORM) return &_PN_shader;
+		if (attributes == CGAP_POS_NORM_TEX) return &_PN_shader;
+		assert(false);
+	}
+	else if (texture_binded && !light_on)
+	{
+		if (attributes == CGAP_POS_NORM) return &_P_shader;
+		if (attributes == CGAP_POS_NORM_TEX) return &_PT_shader;
+		assert(false);
+	}
+	else // texture_binded == false && light_on == false
+	{
+		return &_P_shader;
+	}
+}
+
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 { 
 	GLGeometryBuffer *b = static_cast<GLGeometryBuffer*>(pBuffer);
-	if (!b) return S_OK;
+	if (b == nullptr) return S_OK;	
 
-	TMatrix4x4 MVP = MV * P;
-	const GLuint MVP_ID = glGetUniformLocation(_programID, "MVP");
+	const CORE_GEOMETRY_ATTRIBUTES_PRESENTED attribs = b->GetAttributes();
+	const bool texture_binded = ( tex_ID_last_binded != 0 );
+	const bool light_on = true;
+	const GLShader* pChoosenShader = chooseShader(attribs, texture_binded, light_on);
+	const GLuint choosenProgram = pChoosenShader->programID;
+	glUseProgram(choosenProgram);
+
+	const TMatrix4x4 MVP = MV * P;
+	const GLuint MVP_ID = glGetUniformLocation(choosenProgram, "MVP");
 	glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &MVP._1D[0]);
+	
+	if (choosenProgram == _PN_shader.programID || choosenProgram == _PNT_shader.programID)
+	{		
+		const TMatrix4x4 NM = MatrixTranspose(MatrixInverse(MV)); // Normal matrix = (MV^-1)^T
+		const GLuint NM_ID = glGetUniformLocation(choosenProgram, "NM");
+		glUniformMatrix4fv(NM_ID, 1, GL_FALSE, &NM._1D[0]);
 
-	const GLuint MV_ID = glGetUniformLocation(_programID, "MV");
-	glUniformMatrix4fv(MV_ID, 1, GL_FALSE, &MV._1D[0]);
+		const TVector3 L = { 0.2f, 1.0f, 1.0f };
+		const TVector3 nL = L / L.Length();
+		const TVector3 nL_eyeSpace = MV.ApplyToVector(nL);
+		const GLuint nL_ID = glGetUniformLocation(choosenProgram, "nL");
+		glUniform3f(nL_ID, nL.x, nL.y, nL.z);
+	}
 
-	// Normal matrix = (MV^-1)^T
-	TMatrix4x4 NM = MatrixTranspose(MatrixInverse(MV));
-	const GLuint Norm_ID = glGetUniformLocation(_programID, "NM");
-	glUniformMatrix4fv(Norm_ID, 1, GL_FALSE, &NM._1D[0]);
+	if (choosenProgram == _PNT_shader.programID || choosenProgram == _PT_shader.programID)
+	{
+		glActiveTexture(GL_TEXTURE0 + tex_layer_was_binded);
+		glBindTexture(GL_TEXTURE_2D, tex_ID_last_binded);
+		const GLuint tex_ID = glGetUniformLocation(choosenProgram, "texture0");
+		glUniform1i(tex_ID, 0);
+	}
 
-	const TVector3 L = { 0.2f, 1.0f, 1.0f };
-	const TVector3 nL = L / L.Length();
-	const TVector3 nL_eyeSpace = MV.ApplyToVector(nL);
-	const GLuint nL_ID = glGetUniformLocation(_programID, "nL");
-	glUniform3f(nL_ID, nL.x, nL.y, nL.z);
 
 	glBindVertexArray(b->VAO_ID());
+
+	if (pChoosenShader->normalsInputAttribute) 
+		b->ToggleAttribInVAO(GLGeometryBuffer::NORMALS_ATTRIBUTE, true);
+	else
+		b->ToggleAttribInVAO(GLGeometryBuffer::NORMALS_ATTRIBUTE, false);
+
+	if (pChoosenShader->textCoordsInputAttribute)
+		b->ToggleAttribInVAO(GLGeometryBuffer::TEXCOORDS_ATTRIBUTE, true);
+	else
+		b->ToggleAttribInVAO(GLGeometryBuffer::TEXCOORDS_ATTRIBUTE, false);
+
 	if (b->IndexDrawing())
 		glDrawElements(GL_TRIANGLES, b->IndexCount(), ((b->IndexCount() > 65535) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT), nullptr);
 	else if (b->VertexCount() > 0)
 		glDrawArrays(GL_TRIANGLES, 0, b->VertexCount());
+
 	glBindVertexArray(0);
 
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetColor(const TColor4& stColor)
-{ 
+{
+	glColor4f(stColor.r, stColor.g, stColor.b, stColor.a);
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetColor(TColor4& stColor)
-{ 
+{
+	GLfloat color[4];
+	glGetFloatv(GL_CURRENT_COLOR, color);
+	stColor = color;
 	return S_OK;
 }
 
@@ -771,16 +966,23 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetRasterizerState(TRasterizerStateDesc& st
 
 DGLE_RESULT DGLE_API GL3XCoreRender::BindTexture(ICoreTexture* pTex, uint uiTextureLayer)
 { 
+	assert(uiTextureLayer == 0 || (uiTextureLayer != 0 && pTex == nullptr) ); // other are not implemented
+
 	GLTexture *pGLTex = static_cast<GLTexture*>(pTex);
 	
 	if (pGLTex == nullptr)
+	{
 		glBindTexture(GL_TEXTURE_2D, 0);
+		tex_ID_last_binded = 0;
+	}
 	else
 	{
-		glActiveTexture(GL_TEXTURE0 + uiTextureLayer);
-		glBindTexture(GL_TEXTURE_2D, pGLTex->Texture_ID());
-		const GLuint uniform_ID = glGetUniformLocation(_programID, "texture0");
-		glUniform1i(uniform_ID, uiTextureLayer);
+		//glActiveTexture(GL_TEXTURE0 + uiTextureLayer);
+		tex_layer_was_binded = uiTextureLayer;
+		tex_ID_last_binded = pGLTex->Texture_ID();
+		//glBindTexture(GL_TEXTURE_2D, pGLTex->Texture_ID());
+		//const GLuint uniform_ID = glGetUniformLocation(_PN_shader.programID, "texture0");
+		//glUniform1i(uniform_ID, uiTextureLayer);
 	}
 	
 	return S_OK;
@@ -818,16 +1020,16 @@ DGLE_RESULT DGLE_API GL3XCoreRender::IsFeatureSupported(E_CORE_RENDERER_FEATURE_
 	case CRFT_BUILTIN_STATE_FILTER: break;
 	case CRFT_MULTISAMPLING: break;
 	case CRFT_VSYNC: break;
-	case CRFT_PROGRAMMABLE_PIPELINE: break;
-	case CRFT_LEGACY_FIXED_FUNCTION_PIPELINE_API: break;
+	case CRFT_PROGRAMMABLE_PIPELINE: bIsSupported = true; break;
+	case CRFT_LEGACY_FIXED_FUNCTION_PIPELINE_API: bIsSupported = false; break;
 	case CRFT_BGRA_DATA_FORMAT: break;
 	case CRFT_TEXTURE_COMPRESSION: break;
 	case CRFT_NON_POWER_OF_TWO_TEXTURES: break;
 	case CRFT_DEPTH_TEXTURES: break;
-	case CRFT_TEXTURE_ANISOTROPY: break;
+	case CRFT_TEXTURE_ANISOTROPY: bIsSupported = true; break;
 	case CRFT_TEXTURE_MIPMAP_GENERATION: bIsSupported = true; break;
-	case CRFT_TEXTURE_MIRRORED_REPEAT: break;
-	case CRFT_TEXTURE_MIRROR_CLAMP: break;
+	case CRFT_TEXTURE_MIRRORED_REPEAT: bIsSupported = true; break;
+	case CRFT_TEXTURE_MIRROR_CLAMP: bIsSupported = true; break;
 	case CRFT_GEOMETRY_BUFFER: break;
 	case CRFT_FRAME_BUFFER: break;
 	default: break;

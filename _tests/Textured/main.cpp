@@ -30,12 +30,8 @@ void DGLE_API Init(void *pParameter)
 	pRender->GetRender3D(pRender3D);
 	pEngineCore->GetSubSystem(ESS_RESOURCE_MANAGER, reinterpret_cast<IEngineSubSystem *&>(pResMan));
 	pEngineCore->GetSubSystem(ESS_INPUT, reinterpret_cast<IEngineSubSystem *&>(pInput));
-	//pResMan->GetDefaultResource(EOT_MESH, reinterpret_cast<IEngineBaseObject *&>(pMesh1));
-	pResMan->Load(MODELS_PATH"bublik.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh1), MMLF_FORCE_MODEL_TO_MESH);
 	pResMan->Load(MODELS_PATH"plane100x100.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh2), MMLF_FORCE_MODEL_TO_MESH);
-	pResMan->Load(TEXTURES_PATH"ss_color2.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex1));
-	//pResMan->Load(TEXTURES_PATH"ss_color3.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS | /*TLF_FILTERING_TRILINEAR*/TLF_FILTERING_ANISOTROPIC | TLF_ANISOTROPY_16X);
-	pResMan->Load(TEXTURES_PATH"1.png", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS | TLF_FILTERING_ANISOTROPIC | TLF_ANISOTROPY_16X);
+	pResMan->Load(TEXTURES_PATH"ss_color3.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS | TLF_FILTERING_ANISOTROPIC | TLF_ANISOTROPY_16X);
 }
 
 void DGLE_API Update(void *pParameter)
@@ -57,16 +53,17 @@ void DGLE_API Render(void *pParameter)
 
 	pRender3D->SetMatrix
 	(
-		MatrixRotate(static_cast<float>(uiCounter * 0.5), TVector3(0.f, 1.f, 0.f)) *
+		MatrixRotate(static_cast<float>(uiCounter * 0.25), TVector3(0.f, 1.f, 0.f)) *
 		MatrixRotate(static_cast<float>(25), TVector3(1.f, 0.f, 0.f)) *
 		MatrixTranslate(TVector3(.0f, -0.3f, -3.5f)) *
 		MatrixIdentity() // zero point for all transformations
 	);
 
-	pTex1->Bind();
-	pMesh1->Draw();
-	pTex2->Bind();
-	pMesh2->Draw();
+	//pRender3D->BindTexture(pTex1, 0);
+	//pMesh1->Draw();
+	pRender3D->BindTexture(pTex2, 0);
+	pMesh2->Draw();	
+	pRender3D->BindTexture(nullptr, 0);
 }
 
 // callback on switching to fullscreen event

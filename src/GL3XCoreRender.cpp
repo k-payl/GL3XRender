@@ -300,16 +300,11 @@ public:
 	}
 
 	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd) :
-		_bNotInitalizedCorrectlyYet(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE)
+		_bNotInitalizedCorrectlyYet(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE), activated_attributes{0}
 	{		
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
 		if (indexBuffer) glGenBuffers(1, &_ibo);
-		//memset(&activated_attributes, 0, _countof(activated_attributes));
-		activated_attributes[0] = 0;
-		activated_attributes[1] = 0;
-		activated_attributes[2] = 0;
-		
 		LOG_INFO("GLGeometryBuffer()");
 	}
 
@@ -770,9 +765,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateGeometryBuffer(ICoreGeometryBuffer*& prBuffer, const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode, E_CORE_RENDERER_BUFFER_TYPE eType)
 { 
 	GLGeometryBuffer* pGLBuffer = new GLGeometryBuffer(eType, uiIndicesCount > 0, this);
-	auto result = pGLBuffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
 	prBuffer = pGLBuffer;
-	return result;
+	return pGLBuffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::ToggleStateFilter(bool bEnabled)

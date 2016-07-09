@@ -290,12 +290,11 @@ public:
 	}
 
 	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd) :
-		_bNotInitalizedCorrectlyYet(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE)
+		_bNotInitalizedCorrectlyYet(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE), activated_attributes{0}
 	{		
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
 		if (indexBuffer) glGenBuffers(1, &_ibo);
-		memset(activated_attributes, 0, _countof(activated_attributes) * sizeof(decltype(activated_attributes)));		
 		LOG_INFO("GLGeometryBuffer()");
 	}
 

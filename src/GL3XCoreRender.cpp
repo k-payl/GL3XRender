@@ -249,7 +249,7 @@ static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, G
 
 class GLGeometryBuffer final : public ICoreGeometryBuffer
 {
-	bool _bNotInitalizedCorrectlyYet;
+	bool _bAlreadyInitalized;
 	uint _vertexBytes;
 	uint _indexBytes;
 	GLsizei _vertexCount;
@@ -290,7 +290,7 @@ public:
 	}
 
 	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd) :
-		_bNotInitalizedCorrectlyYet(true), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE), activated_attributes{0}
+		_bAlreadyInitalized(false), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE), activated_attributes{0}
 	{		
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
@@ -318,7 +318,7 @@ public:
 		_indexBytes = (stDrawDesc.bIndexBuffer32 ? sizeof(uint32) : sizeof(uint16));
 		const GLsizei indexes_data_bytes = uiIndicesCount * _indexBytes;
 
-		if (_bNotInitalizedCorrectlyYet)
+		if (!_bAlreadyInitalized)
 		{
 			if (_eBufferType == CRBT_SOFTWARE) return E_FAIL; // not implemented
 
@@ -354,7 +354,7 @@ public:
 			}
 
 			glBindVertexArray(0);
-			_bNotInitalizedCorrectlyYet = false;
+			_bAlreadyInitalized = true;
 		}
 		else // update data in buffer
 		{ // TODO
@@ -792,30 +792,31 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_COR
 	return S_OK;
 }
 
-GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on)
+GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_attributes, bool texture_binded, bool light_on)
 {
 	if (texture_binded && light_on)
 	{		
-		if (attributes == CGAP_POS_NORM) return &_PN_shader;
-		if (attributes == CGAP_POS_NORM_TEX) return &_PNT_shader;
-		assert(false);
+		if (model_attributes == CGAP_POS_NORM) return &_PN_shader;
+		if (model_attributes == CGAP_POS_NORM_TEX) return &_PNT_shader;
+		assert(false); // unreachable
+		return &_P_shader;
 	}
 	else if (!texture_binded && light_on)
 	{
-		if (attributes == CGAP_POS_NORM) return &_PN_shader;
-		if (attributes == CGAP_POS_NORM_TEX) return &_PN_shader;
-		assert(false);
+		if (model_attributes == CGAP_POS_NORM) return &_PN_shader;
+		if (model_attributes == CGAP_POS_NORM_TEX) return &_PN_shader;
+		assert(false); // unreachable
+		return &_P_shader;
 	}
 	else if (texture_binded && !light_on)
 	{
-		if (attributes == CGAP_POS_NORM) return &_P_shader;
-		if (attributes == CGAP_POS_NORM_TEX) return &_PT_shader;
-		assert(false);
-	}
-	else // texture_binded == false && light_on == false
-	{
+		if (model_attributes == CGAP_POS_NORM) return &_P_shader;
+		if (model_attributes == CGAP_POS_NORM_TEX) return &_PT_shader;
+		assert(false); // unreachable
 		return &_P_shader;
 	}
+	else
+		return &_P_shader;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)

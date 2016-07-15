@@ -179,6 +179,49 @@ static const char *pt_f[] = // Fragment shader with interpolated attributes: Tex
 	"\n"
 };
 
+static const char *pt2d_v[] = // Vertex shader with input: Position (vec2), Texture coordiantes
+{
+	"#version 330\n",
+	"\n",
+	"layout(location = 0) in vec2 Position;\n",
+	"layout(location = 2) in vec2 TexCoord;\n",
+	"\n",
+	"uniform uint screenWidth;\n",
+	"uniform uint screenHeight;\n",
+	"\n",
+	"smooth out vec2 UV;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	UV = TexCoord;\n",
+	"	float x = Position.x / screenWidth;\n",
+	"	float y = Position.y / screenHeight;\n",
+	"	gl_Position = vec4(x, y, 0.0, 1.0);\n",
+	"}\n",
+	"\n"
+};
+
+static const char *pt2d_f[] = // Fragment shader with interpolated attributes: Texture coordiantes
+{
+	"#version 330\n",
+	"\n",
+	"smooth in vec2 UV;\n",
+	"\n",
+	"uniform sampler2D texture0;\n",
+	"\n",
+	"out vec4 color;\n",
+	"\n",
+	"\n",
+	"void main()\n",
+	"{\n",
+	"	vec4 color_ = texture(texture0, UV);\n",
+	"	color = vec4(1,1,1, color_.a);\n",
+	"}\n",
+	"\n"
+};
+
+
 static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
 {
 	_core->WriteToLogEx(pcTxt, eType, pcSrcFileName, iSrcLineNumber);
@@ -262,6 +305,7 @@ class GLGeometryBuffer final : public ICoreGeometryBuffer
 	GL3XCoreRender * const _pRnd;
 	CORE_GEOMETRY_ATTRIBUTES_PRESENTED _attribs_presented;
 	int activated_attributes[3];
+	bool _b2dPosition;
 	// We don't keep TDrawDataDesc
 
 public:
@@ -275,6 +319,21 @@ public:
 	inline GLsizei VertexCount() { return _vertexCount; }
 	inline GLsizei IndexCount() { return _indexCount; }
 	inline CORE_GEOMETRY_ATTRIBUTES_PRESENTED GetAttributes() { return _attribs_presented; }
+	inline bool Is2dPosition() { return _b2dPosition; }
+	inline GLenum GLDrawMode()
+	{
+		GLenum mode;
+		switch (_eDrawMode)
+		{
+			case CRDM_POINTS: mode = GL_POINTS; break;
+			case CRDM_LINES: mode = GL_LINES; break;
+			case CRDM_LINE_STRIP: mode = GL_LINE_STRIP; break;
+			case CRDM_TRIANGLES: mode = GL_TRIANGLES; break;
+			case CRDM_TRIANGLE_STRIP: mode = GL_TRIANGLE_STRIP; break;
+			case CRDM_TRIANGLE_FAN: mode = GL_TRIANGLE_FAN; break;
+		}
+		return mode;
+	}
 	inline void ToggleAttribInVAO(int attrib_ind, bool value)
 	{
 		if (value && !activated_attributes[attrib_ind])
@@ -290,7 +349,7 @@ public:
 	}
 
 	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd) :
-		_bAlreadyInitalized(false), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE), activated_attributes{0}
+		_bAlreadyInitalized(false), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE), activated_attributes{0}, _b2dPosition(false)
 	{		
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
@@ -317,6 +376,7 @@ public:
 		const GLsizei vertex_data_bytes = uiVerticesCount * _vertexBytes;
 		_indexBytes = (stDrawDesc.bIndexBuffer32 ? sizeof(uint32) : sizeof(uint16));
 		const GLsizei indexes_data_bytes = uiIndicesCount * _indexBytes;
+		_b2dPosition = stDrawDesc.bVertices2D;
 
 		if (!_bAlreadyInitalized)
 		{
@@ -328,7 +388,7 @@ public:
 			const GLenum glBufferType = _eBufferType == CRBT_HARDWARE_STATIC ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
 			glBufferData(GL_ARRAY_BUFFER, vertex_data_bytes, reinterpret_cast<const void*>(stDrawDesc.pData), glBufferType); // send data to VRAM
 
-			glVertexAttribPointer(0, stDrawDesc.bVertices2D ? 2 : 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiVertexStride, reinterpret_cast<void*>(0));
+			glVertexAttribPointer(0, _b2dPosition ? 2 : 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiVertexStride, reinterpret_cast<void*>(0));
 			ToggleAttribInVAO(POSITION_ATTRIBUTE, true);
 			_attribs_presented = static_cast<CORE_GEOMETRY_ATTRIBUTES_PRESENTED>(_attribs_presented | CGAP_POS);
 
@@ -498,11 +558,13 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	_load_and_create_shaders(_PN_shader, pn_v, _countof(pn_v) - 1, pn_f, _countof(pn_f) - 1);
 	_load_and_create_shaders(_PNT_shader, pnt_v, _countof(pnt_v) - 1, pnt_f, _countof(pnt_f) - 1);
 	_load_and_create_shaders(_PT_shader, pt_v, _countof(pt_v) - 1, pt_f, _countof(pt_f) - 1);
+	_load_and_create_shaders(_PT2D_shader, pt2d_v, _countof(pt2d_v) - 1, pt2d_f, _countof(pt2d_f) - 1);
 
 	_P_shader.normalsInputAttribute = false; _P_shader.textCoordsInputAttribute = false;
 	_PN_shader.normalsInputAttribute = true; _PN_shader.textCoordsInputAttribute = false;
 	_PNT_shader.normalsInputAttribute = true; _PNT_shader.textCoordsInputAttribute = true;
 	_PT_shader.normalsInputAttribute = false; _PT_shader.textCoordsInputAttribute = true;
+	_PT2D_shader.normalsInputAttribute = false; _PT2D_shader.textCoordsInputAttribute = true;
 
 	if (GLEW_EXT_texture_filter_anisotropic)
 		glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_iMaxAnisotropy);
@@ -789,15 +851,26 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetMatrix(TMatrix4x4& stMatrix, E_MATRIX_TY
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_CORE_RENDERER_DRAW_MODE eMode, uint uiCount)
 { 
+	GLGeometryBuffer buffer(CRBT_HARDWARE_STATIC, false, this);
+	buffer.Reallocate(stDrawDesc, uiCount, 0, eMode);
+	DrawBuffer(&buffer);
 	return S_OK;
 }
 
-GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_attributes, bool texture_binded, bool light_on)
+GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_attributes, bool texture_binded, bool light_on, bool is2D)
 {
+	if (is2D)
+	{
+		assert(model_attributes & CGAP_POS);
+		assert(model_attributes & CGAP_TEX);
+		return &_PT2D_shader;
+	}
+
 	if (texture_binded && light_on)
 	{		
 		if (model_attributes == CGAP_POS_NORM) return &_PN_shader;
 		if (model_attributes == CGAP_POS_NORM_TEX) return &_PNT_shader;
+		if (model_attributes == CGAP_POS_TEX) return &_PT_shader;
 		assert(false); // unreachable
 		return &_P_shader;
 	}
@@ -805,6 +878,7 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 	{
 		if (model_attributes == CGAP_POS_NORM) return &_PN_shader;
 		if (model_attributes == CGAP_POS_NORM_TEX) return &_PN_shader;
+		if (model_attributes == CGAP_POS_TEX) return &_PT_shader;
 		assert(false); // unreachable
 		return &_P_shader;
 	}
@@ -812,6 +886,7 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 	{
 		if (model_attributes == CGAP_POS_NORM) return &_P_shader;
 		if (model_attributes == CGAP_POS_NORM_TEX) return &_PT_shader;
+		if (model_attributes == CGAP_POS_TEX) return &_PT_shader;
 		assert(false); // unreachable
 		return &_P_shader;
 	}
@@ -821,13 +896,13 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 { 
-	GLGeometryBuffer *b = static_cast<GLGeometryBuffer*>(pBuffer);
+	GLGeometryBuffer *b = dynamic_cast<GLGeometryBuffer*>(pBuffer);
 	if (b == nullptr) return S_OK;	
 
 	const CORE_GEOMETRY_ATTRIBUTES_PRESENTED attribs = b->GetAttributes();
 	const bool texture_binded = ( tex_ID_last_binded != 0 );
 	const bool light_on = true;
-	const GLShader* pChoosenShader = chooseShader(attribs, texture_binded, light_on);
+	const GLShader* pChoosenShader = chooseShader(attribs, texture_binded, light_on, b->Is2dPosition());
 	const GLuint choosenProgram = pChoosenShader->programID;
 	glUseProgram(choosenProgram);
 
@@ -856,6 +931,16 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		glUniform1i(tex_ID, 0);
 	}
 
+	if (choosenProgram == _PT2D_shader.programID)
+	{
+		const GLuint width_ID = glGetUniformLocation(choosenProgram, "screenWidth");
+		const GLuint height_ID = glGetUniformLocation(choosenProgram, "screenHeight");
+		uint x, y, w, h;
+		GetViewport(x, y, w, h);
+		glUniform1ui(width_ID, w);
+		glUniform1ui(height_ID, h);
+	}
+
 
 	glBindVertexArray(b->VAO_ID());
 
@@ -870,9 +955,9 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		b->ToggleAttribInVAO(GLGeometryBuffer::TEXCOORDS_ATTRIBUTE, false);
 
 	if (b->IndexDrawing())
-		glDrawElements(GL_TRIANGLES, b->IndexCount(), ((b->IndexCount() > 65535) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT), nullptr);
+		glDrawElements(b->GLDrawMode(), b->IndexCount(), ((b->IndexCount() > 65535) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT), nullptr);
 	else if (b->VertexCount() > 0)
-		glDrawArrays(GL_TRIANGLES, 0, b->VertexCount());
+		glDrawArrays(b->GLDrawMode(), 0, b->VertexCount());
 
 	glBindVertexArray(0);
 

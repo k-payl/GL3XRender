@@ -27,6 +27,7 @@ struct GLShader
 enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
 {
 	CGAP_POS_NORM =		0b00000011, // valid combinations
+	CGAP_POS_TEX =		0b00000101,
 	CGAP_POS_NORM_TEX =	0b00000111,
 
 	CGAP_NONE =			0b00000000, // utility combinations
@@ -41,6 +42,7 @@ class GL3XCoreRender final : public ICoreRenderer
 	GLShader _PN_shader;
 	GLShader _PNT_shader;
 	GLShader _PT_shader;
+	GLShader _PT2D_shader;
 	TMatrix4x4 MV;
 	TMatrix4x4 P;
 	GLint _iMaxAnisotropy;
@@ -49,7 +51,7 @@ class GL3XCoreRender final : public ICoreRenderer
 
 	void _load_and_create_shaders(GLShader& shader, const char *v[], size_t vn, const char *f[], size_t fn);
 	void _delete_shader(const GLShader& shader);
-	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on);
+	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on, bool is2d);
 
 public:
 

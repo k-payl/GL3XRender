@@ -52,6 +52,7 @@ int main()
 	static const string PN_shaders[] = { SHADER_DIRECTORY"camera_pn_vert.shader", SHADER_DIRECTORY"camera_pn_frag.shader" };
 	static const string PNT_shaders[] = { SHADER_DIRECTORY"camera_pnt_vert.shader", SHADER_DIRECTORY"camera_pnt_frag.shader" };
 	static const string PT_shaders[] = { SHADER_DIRECTORY"camera_pt_vert.shader", SHADER_DIRECTORY"camera_pt_frag.shader" };
+	static const string PT2D_shaders[] = { SHADER_DIRECTORY"camera_pt_2d_vert.shader", SHADER_DIRECTORY"camera_pt_2d_frag.shader" };
 
 	ofstream out("out.txt");
 
@@ -66,6 +67,9 @@ int main()
 
 	write_shader(out, PT_shaders[0], "pt_v", "Vertex shader with input: Position, Texture coordiantes");
 	write_shader(out, PT_shaders[1], "pt_f", "Fragment shader with interpolated attributes: Texture coordiantes");
+
+	write_shader(out, PT2D_shaders[0], "pt2d_v", "Vertex shader with input: Position (vec2), Texture coordiantes");
+	write_shader(out, PT2D_shaders[1], "pt2d_f", "Fragment shader with interpolated attributes: Texture coordiantes");
 
 	out.close();
 

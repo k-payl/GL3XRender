@@ -18,6 +18,7 @@
     <ClInclude Include="src\GL\glew.h">
       <Filter>GLEW</Filter>
     </ClInclude>
+    <ClInclude Include="src\shaders.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />

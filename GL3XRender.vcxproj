@@ -167,6 +167,7 @@
     <ClInclude Include="src/PluginCore.h" />
     <ClInclude Include="src\GL\glew.h" />
     <ClInclude Include="src\GL\wglew.h" />
+    <ClInclude Include="src\shaders.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src/GL3XCoreRender.cpp" />

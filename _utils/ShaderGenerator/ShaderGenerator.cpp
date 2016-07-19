@@ -77,6 +77,5 @@ int main()
 	out.close();
 
 	cout << "all shader text written to " << FILE_OUT;
-	cin.get();
 }
 

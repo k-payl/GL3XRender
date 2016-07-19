@@ -158,7 +158,7 @@ public:
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
 		if (indexBuffer) glGenBuffers(1, &_ibo);
-		LOG_INFO("GLGeometryBuffer()");
+		//LOG_INFO("GLGeometryBuffer()");
 	}
 
 	~GLGeometryBuffer()
@@ -166,7 +166,7 @@ public:
 		if (_ibo!=0) glDeleteBuffers(1, &_ibo);
 		glDeleteBuffers(1, &_vbo);
 		glDeleteVertexArrays(1, &_vao);
-		LOG_INFO("~GLGeometryBuffer()");
+		//LOG_INFO("~GLGeometryBuffer()");
 	}
 
 	DGLE_RESULT DGLE_API GetGeometryData(TDrawDataDesc& stDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override {return S_OK;}
@@ -376,6 +376,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
 	glClearDepth(1.0);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	return S_OK;
 }

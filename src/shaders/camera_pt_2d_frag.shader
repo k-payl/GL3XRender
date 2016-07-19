@@ -9,6 +9,6 @@ out vec4 color;
 
 void main()
 {
-	vec4 color_ = texture(texture0, UV);
-	color = vec4(color_.r, 0, 0, 1);
+	vec4 tex = texture(texture0, UV);
+	color = vec4(1, 1, 1, tex.r);
 }

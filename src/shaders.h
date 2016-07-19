@@ -171,8 +171,8 @@ static const char *pt2d_v[] = // Vertex shader with input: Position (vec2), Text
  "void main()\n",
  "{\n",
  "	UV = TexCoord;\n",
- "	float x = Position.x / screenWidth;\n",
- "	float y = Position.y / screenHeight;\n",
+ "	float x = (Position.x / screenWidth) * 2 - 1;\n",
+ "	float y = - (Position.y / screenHeight) * 2 + 1;\n",
  "	gl_Position = vec4(x, y, 0.0, 1.0);\n",
  "}\n",
  "\n"
@@ -191,8 +191,8 @@ static const char *pt2d_f[] = // Fragment shader with interpolated attributes: T
  "\n",
  "void main()\n",
  "{\n",
- "	vec4 color_ = texture(texture0, UV);\n",
- "	color = vec4(color_.r, 0, 0, 1);\n",
+ "	vec4 tex = texture(texture0, UV);\n",
+ "	color = vec4(1, 1, 1, tex.r);\n",
  "}\n",
  "\n"
 };

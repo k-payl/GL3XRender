@@ -78,7 +78,7 @@ static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, G
 	{
 		case TDF_RGB8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_RGB;  break;
 		case TDF_RGBA8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_RGBA; break;
-		case TDF_ALPHA8:			VRAMFormat = GL_ALPHA8;	sourceFormat = GL_ALPHA; break;
+		case TDF_ALPHA8:			VRAMFormat = GL_R8;	sourceFormat = GL_RED; break;
 		case TDF_BGR8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_BGR; break;
 		case TDF_BGRA8:				VRAMFormat = GL_RGBA8;	sourceFormat = GL_BGRA; break;
 		//case TDF_DXT1:				break; ??
@@ -727,7 +727,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		glUniform3f(nL_ID, nL.x, nL.y, nL.z);
 	}
 
-	if (choosenProgram == _PNT_shader.programID || choosenProgram == _PT_shader.programID)
+	if (choosenProgram == _PNT_shader.programID || choosenProgram == _PT_shader.programID || choosenProgram == _PT2D_shader.programID)
 	{
 		glActiveTexture(GL_TEXTURE0 + tex_layer_was_binded);
 		glBindTexture(GL_TEXTURE_2D, tex_ID_last_binded);
@@ -770,7 +770,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetColor(const TColor4& stColor)
 {
-	glColor4f(stColor.r, stColor.g, stColor.b, stColor.a);
+	//glColor4f(stColor.r, stColor.g, stColor.b, stColor.a); //1281
 	return S_OK;
 }
 

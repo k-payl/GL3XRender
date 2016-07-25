@@ -72,13 +72,38 @@ static void checkShaderError(uint id, GLenum constant)
 	}
 }
 
+GLShader::GLShader(bool normals, bool coords, const char *v[], size_t vn, const char *f[], size_t fn) :
+	normalsInputAttribute(normalsInputAttribute), textCoordsInputAttribute(coords)
+{
+	programID = glCreateProgram();
+	vertID = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertID, vn, v, nullptr);
+	glCompileShader(vertID);
+	checkShaderError(vertID, GL_COMPILE_STATUS);
+	fragID = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragID, fn, f, nullptr);
+	glCompileShader(fragID);
+	checkShaderError(fragID, GL_COMPILE_STATUS);
+	glAttachShader(programID, vertID);
+	glAttachShader(programID, fragID);
+	glLinkProgram(programID);
+	checkShaderError(programID, GL_LINK_STATUS);
+}
+
+GLShader::~GLShader()
+{
+	if (vertID != 0) glDeleteShader(vertID);
+	if (fragID != 0) glDeleteShader(fragID);
+	if (programID != 0) glDeleteProgram(programID);
+}
+
 static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, GLenum& sourceFormat)
 {
 	switch (eDataFormat)
 	{
 		case TDF_RGB8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_RGB;  break;
 		case TDF_RGBA8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_RGBA; break;
-		case TDF_ALPHA8:			VRAMFormat = GL_R8;	sourceFormat = GL_RED; break;
+		case TDF_ALPHA8:			VRAMFormat = GL_R8;		sourceFormat = GL_RED; break;
 		case TDF_BGR8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_BGR; break;
 		case TDF_BGRA8:				VRAMFormat = GL_RGBA8;	sourceFormat = GL_BGRA; break;
 		//case TDF_DXT1:				break; ??
@@ -110,7 +135,6 @@ class GLGeometryBuffer final : public ICoreGeometryBuffer
 	CORE_GEOMETRY_ATTRIBUTES_PRESENTED _attribs_presented;
 	int activated_attributes[3];
 	bool _b2dPosition;
-	// We don't keep TDrawDataDesc
 
 public:
 
@@ -264,12 +288,12 @@ public:
 		_bGenerateMipmaps(bGenerateMipmaps)
 	{
 		glGenTextures(1, &_textureID);
-		LOG_INFO("GLTexture()");
+		//LOG_INFO("GLTexture()");
 	}
 	~GLTexture()
 	{
 		glDeleteTextures(1, &_textureID);
-		LOG_INFO("~GLTexture()");
+		//LOG_INFO("~GLTexture()");
 	}
 
 	DGLE_RESULT DGLE_API GetSize(uint& width, uint& height) override {return S_OK;}
@@ -310,31 +334,11 @@ public:
 //         Render       //
 //////////////////////////
 
-void GL3XCoreRender::_load_and_create_shaders(GLShader& shader, const char *v[], size_t vn, const char *f[], size_t fn)
-{
-	shader.programID = glCreateProgram();
-	shader.vertID = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(shader.vertID, vn, v, nullptr);
-	glCompileShader(shader.vertID);
-	checkShaderError(shader.vertID, GL_COMPILE_STATUS);
-	shader.fragID = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(shader.fragID, fn, f, nullptr);
-	glCompileShader(shader.fragID);
-	checkShaderError(shader.fragID, GL_COMPILE_STATUS);
-	glAttachShader(shader.programID, shader.vertID);
-	glAttachShader(shader.programID, shader.fragID);
-	glLinkProgram(shader.programID);
-	checkShaderError(shader.programID, GL_LINK_STATUS);
-}
-
 void GL3XCoreRender::_delete_shader(const GLShader& shader)
 {
-	if (shader.vertID != 0) glDeleteShader(shader.vertID);
-	if (shader.fragID != 0) glDeleteShader(shader.fragID);
-	if (shader.programID != 0) glDeleteProgram(shader.programID);
 }
 
-GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _PN_shader{ 0,0,0 }, _PNT_shader{0, 0, 0}, _iMaxAnisotropy(0)
+GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _iMaxAnisotropy(0)
 {
 	_core = pCore;
 }
@@ -358,17 +362,11 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	sprintf(buffer, OGLI"%i.%i", major, minor);
 	LOG_INFO(string(buffer));
 
-	_load_and_create_shaders(_P_shader, p_v, _countof(p_v) - 1, p_f, _countof(p_f) - 1);
-	_load_and_create_shaders(_PN_shader, pn_v, _countof(pn_v) - 1, pn_f, _countof(pn_f) - 1);
-	_load_and_create_shaders(_PNT_shader, pnt_v, _countof(pnt_v) - 1, pnt_f, _countof(pnt_f) - 1);
-	_load_and_create_shaders(_PT_shader, pt_v, _countof(pt_v) - 1, pt_f, _countof(pt_f) - 1);
-	_load_and_create_shaders(_PT2D_shader, pt2d_v, _countof(pt2d_v) - 1, pt2d_f, _countof(pt2d_f) - 1);
-
-	_P_shader.normalsInputAttribute = false; _P_shader.textCoordsInputAttribute = false;
-	_PN_shader.normalsInputAttribute = true; _PN_shader.textCoordsInputAttribute = false;
-	_PNT_shader.normalsInputAttribute = true; _PNT_shader.textCoordsInputAttribute = true;
-	_PT_shader.normalsInputAttribute = false; _PT_shader.textCoordsInputAttribute = true;
-	_PT2D_shader.normalsInputAttribute = false; _PT2D_shader.textCoordsInputAttribute = true;
+	_p_P_shader = make_unique<GLShader>(false, false, p_v, _countof(p_v) - 1, p_f, _countof(p_f) - 1);
+	_p_PN_shader = make_unique<GLShader>(true, false, pn_v, _countof(pn_v) - 1, pn_f, _countof(pn_f) - 1);
+	_p_PNT_shader = make_unique<GLShader>(true, true, pnt_v, _countof(pnt_v) - 1, pnt_f, _countof(pnt_f) - 1);
+	_p_PT_shader = make_unique<GLShader>(false, true, pt_v, _countof(pt_v) - 1, pt_f, _countof(pt_f) - 1);
+	_p_PT2D_shader = make_unique<GLShader>(false, true, pt2d_v, _countof(pt2d_v) - 1, pt2d_f, _countof(pt2d_f) - 1);
 
 	if (GLEW_EXT_texture_filter_anisotropic)
 		glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_iMaxAnisotropy);
@@ -384,10 +382,11 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Finalize()
 {
-	_delete_shader(_P_shader);
-	_delete_shader(_PN_shader);
-	_delete_shader(_PNT_shader);
-	_delete_shader(_PT_shader);
+	_p_P_shader.reset();
+	_p_PN_shader.reset();
+	_p_PNT_shader.reset();
+	_p_PT_shader.reset();
+	_p_PT2D_shader.reset();
 	FreeGL();
 	return S_OK;
 }
@@ -669,35 +668,35 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 	{
 		assert(model_attributes & CGAP_POS);
 		assert(model_attributes & CGAP_TEX);
-		return &_PT2D_shader;
+		return _p_PT2D_shader.get();
 	}
 
 	if (texture_binded && light_on)
 	{		
-		if (model_attributes == CGAP_POS_NORM) return &_PN_shader;
-		if (model_attributes == CGAP_POS_NORM_TEX) return &_PNT_shader;
-		if (model_attributes == CGAP_POS_TEX) return &_PT_shader;
+		if (model_attributes == CGAP_POS_NORM) return _p_PN_shader.get();
+		if (model_attributes == CGAP_POS_NORM_TEX) return _p_PNT_shader.get();
+		if (model_attributes == CGAP_POS_TEX) return _p_PT_shader.get();
 		assert(false); // unreachable
-		return &_P_shader;
+		return _p_P_shader.get();
 	}
 	else if (!texture_binded && light_on)
 	{
-		if (model_attributes == CGAP_POS_NORM) return &_PN_shader;
-		if (model_attributes == CGAP_POS_NORM_TEX) return &_PN_shader;
-		if (model_attributes == CGAP_POS_TEX) return &_PT_shader;
+		if (model_attributes == CGAP_POS_NORM) return _p_PN_shader.get();
+		if (model_attributes == CGAP_POS_NORM_TEX) return _p_PN_shader.get();
+		if (model_attributes == CGAP_POS_TEX) return _p_PT_shader.get();
 		assert(false); // unreachable
-		return &_P_shader;
+		return _p_P_shader.get();
 	}
 	else if (texture_binded && !light_on)
 	{
-		if (model_attributes == CGAP_POS_NORM) return &_P_shader;
-		if (model_attributes == CGAP_POS_NORM_TEX) return &_PT_shader;
-		if (model_attributes == CGAP_POS_TEX) return &_PT_shader;
+		if (model_attributes == CGAP_POS_NORM) return _p_P_shader.get();
+		if (model_attributes == CGAP_POS_NORM_TEX) return _p_PT_shader.get();
+		if (model_attributes == CGAP_POS_TEX) return _p_PT_shader.get();
 		assert(false); // unreachable
-		return &_P_shader;
+		return _p_P_shader.get();
 	}
 	else
-		return &_P_shader;
+		return _p_P_shader.get();
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
@@ -709,14 +708,14 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 	const bool texture_binded = ( tex_ID_last_binded != 0 );
 	const bool light_on = true;
 	const GLShader* pChoosenShader = chooseShader(attribs, texture_binded, light_on, b->Is2dPosition());
-	const GLuint choosenProgram = pChoosenShader->programID;
+	const GLuint choosenProgram = pChoosenShader->ID_Program();
 	glUseProgram(choosenProgram);
 
 	const TMatrix4x4 MVP = MV * P;
 	const GLuint MVP_ID = glGetUniformLocation(choosenProgram, "MVP");
 	glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &MVP._1D[0]);
 	
-	if (choosenProgram == _PN_shader.programID || choosenProgram == _PNT_shader.programID)
+	if (choosenProgram == _p_PN_shader->ID_Program() || choosenProgram == _p_PNT_shader->ID_Program())
 	{		
 		const TMatrix4x4 NM = MatrixTranspose(MatrixInverse(MV)); // Normal matrix = (MV^-1)^T
 		const GLuint NM_ID = glGetUniformLocation(choosenProgram, "NM");
@@ -729,7 +728,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		glUniform3f(nL_ID, nL.x, nL.y, nL.z);
 	}
 
-	if (choosenProgram == _PNT_shader.programID || choosenProgram == _PT_shader.programID || choosenProgram == _PT2D_shader.programID)
+	if (choosenProgram == _p_PNT_shader->ID_Program() || choosenProgram == _p_PT_shader->ID_Program() || choosenProgram == _p_PT2D_shader->ID_Program())
 	{
 		glActiveTexture(GL_TEXTURE0 + tex_layer_was_binded);
 		glBindTexture(GL_TEXTURE_2D, tex_ID_last_binded);
@@ -737,7 +736,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		glUniform1i(tex_ID, 0);
 	}
 
-	if (choosenProgram == _PT2D_shader.programID)
+	if (choosenProgram == _p_PT2D_shader->ID_Program())
 	{
 		const GLuint width_ID = glGetUniformLocation(choosenProgram, "screenWidth");
 		const GLuint height_ID = glGetUniformLocation(choosenProgram, "screenHeight");

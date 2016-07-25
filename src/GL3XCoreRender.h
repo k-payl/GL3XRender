@@ -11,38 +11,46 @@ See "DGLE.h" for more details.
 #include "DGLE.h"
 #include "DGLE_CoreRenderer.h"
 #include "GL/glew.h"
+#include<memory>
 using namespace DGLE;
 
 
-struct GLShader
+class GLShader
 {
 	GLuint programID;
 	GLuint fragID;
 	GLuint vertID;
 
-	bool normalsInputAttribute;
-	bool textCoordsInputAttribute;
+public:
+
+	const bool normalsInputAttribute;
+	const bool textCoordsInputAttribute;
+
+	GLuint ID_Program() const { return programID; }
+
+	GLShader(bool normals, bool coords, const char *v[], size_t vn, const char *f[], size_t fn);
+	~GLShader();
 };
 
 enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
 {
-	CGAP_POS_NORM =		0b00000011, // valid combinations
+	CGAP_NONE =			0b00000000,
+	CGAP_POS_NORM =		0b00000011,
 	CGAP_POS_TEX =		0b00000101,
 	CGAP_POS_NORM_TEX =	0b00000111,
-
-	CGAP_NONE =			0b00000000, // utility combinations
 	CGAP_POS =			0b00000001,
 	CGAP_NORM =			0b00000010,
 	CGAP_TEX =			0b00000100,
 };
 
+
 class GL3XCoreRender final : public ICoreRenderer
 {
-	GLShader _P_shader;
-	GLShader _PN_shader;
-	GLShader _PNT_shader;
-	GLShader _PT_shader;
-	GLShader _PT2D_shader;
+	std::unique_ptr<GLShader> _p_P_shader;
+	std::unique_ptr<GLShader> _p_PN_shader;
+	std::unique_ptr<GLShader> _p_PNT_shader;
+	std::unique_ptr<GLShader> _p_PT_shader;
+	std::unique_ptr<GLShader> _p_PT2D_shader;
 	TMatrix4x4 MV;
 	TMatrix4x4 P;
 	GLint _iMaxAnisotropy;

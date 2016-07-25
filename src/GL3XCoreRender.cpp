@@ -25,22 +25,43 @@ static IEngineCore *_core;
 
 #include "shaders.h"
 
+inline GLenum BlendFactor_DGLE_2_GL(E_BLEND_FACTOR dgleFactor)
+{
+	switch (dgleFactor)
+	{
+		case BF_ZERO:					return GL_ZERO;
+		case BF_ONE:					return GL_ONE;
+		case BF_SRC_COLOR:				return GL_SRC_COLOR;
+		case BF_SRC_ALPHA:				return GL_SRC_ALPHA;
+		case BF_DST_COLOR:				return GL_DST_COLOR;
+		case BF_DST_ALPHA:				return GL_DST_ALPHA;
+		case BF_ONE_MINUS_SRC_COLOR:	return GL_ONE_MINUS_SRC_COLOR;
+		case BF_ONE_MINUS_SRC_ALPHA:	return GL_ONE_MINUS_SRC_ALPHA;
+		default:
+			assert(false);
+	}
+}
+
+inline E_BLEND_FACTOR BlendFactor_GL_2_DGLE(GLenum d3dFactor)
+{
+	switch (d3dFactor)
+	{
+		case GL_ZERO:				return BF_ZERO;
+		case GL_ONE:				return BF_ONE;
+		case GL_SRC_COLOR:			return BF_SRC_COLOR;
+		case GL_SRC_ALPHA:			return BF_SRC_ALPHA;
+		case GL_DST_COLOR:			return BF_DST_COLOR;
+		case GL_DST_ALPHA:			return BF_DST_ALPHA;
+		case GL_ONE_MINUS_SRC_COLOR:return BF_ONE_MINUS_SRC_COLOR;
+		case GL_ONE_MINUS_SRC_ALPHA:return BF_ONE_MINUS_SRC_ALPHA;
+		default:
+			assert(false);
+	}
+}
 
 static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
 {
 	_core->WriteToLogEx(pcTxt, eType, pcSrcFileName, iSrcLineNumber);
-}
-
-static GLsizei vertexSize(const TDrawDataDesc& stDrawDesc)
-{
-	return
-		4 * (	// sizeof(float)											
-			(stDrawDesc.bVertices2D ? 2 : 3) +
-			(stDrawDesc.uiNormalOffset != -1 ? 3 : 0) +
-			(stDrawDesc.uiTextureVertexOffset != -1 ? 2 : 0) +
-			(stDrawDesc.uiColorOffset != -1 ? 4 : 0) +
-			(stDrawDesc.uiTangentOffset != -1 ? 3 : 0) +
-			(stDrawDesc.uiBinormalOffset != -1 ? 3 : 0));
 }
 
 static void checkShaderError(uint id, GLenum constant)
@@ -75,6 +96,7 @@ static void checkShaderError(uint id, GLenum constant)
 GLShader::GLShader(bool normals, bool coords, const char *v[], size_t vn, const char *f[], size_t fn) :
 	normalsInputAttribute(normalsInputAttribute), textCoordsInputAttribute(coords)
 {
+	LOG_INFO("GLShader()");
 	programID = glCreateProgram();
 	vertID = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertID, vn, v, nullptr);
@@ -92,6 +114,7 @@ GLShader::GLShader(bool normals, bool coords, const char *v[], size_t vn, const 
 
 GLShader::~GLShader()
 {
+	LOG_INFO("~GLShader()");
 	if (vertID != 0) glDeleteShader(vertID);
 	if (fragID != 0) glDeleteShader(fragID);
 	if (programID != 0) glDeleteProgram(programID);
@@ -174,6 +197,18 @@ public:
 			activated_attributes[attrib_ind] = false;
 			glDisableVertexAttribArray(attrib_ind);
 		}
+	}
+
+	GLsizei vertexSize(const TDrawDataDesc& stDrawDesc)
+	{
+		return
+			4 * (	// sizeof(float)											
+				(stDrawDesc.bVertices2D ? 2 : 3) +
+				(stDrawDesc.uiNormalOffset != -1 ? 3 : 0) +
+				(stDrawDesc.uiTextureVertexOffset != -1 ? 2 : 0) +
+				(stDrawDesc.uiColorOffset != -1 ? 4 : 0) +
+				(stDrawDesc.uiTangentOffset != -1 ? 3 : 0) +
+				(stDrawDesc.uiBinormalOffset != -1 ? 3 : 0));
 	}
 
 	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd) :
@@ -334,10 +369,6 @@ public:
 //         Render       //
 //////////////////////////
 
-void GL3XCoreRender::_delete_shader(const GLShader& shader)
-{
-}
-
 GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _iMaxAnisotropy(0)
 {
 	_core = pCore;
@@ -373,9 +404,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 
 	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
-	glClearDepth(1.0);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glClearDepth(1.0);	
 
 	return S_OK;
 }
@@ -623,12 +652,36 @@ DGLE_RESULT DGLE_API GL3XCoreRender::InvalidateStateFilter()
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
-{ 
+{
+	// OpenGL get -> state, push
+	State state;
+
+	GLboolean enabled;
+	glGetBooleanv(GL_BLEND, &enabled);
+	state.blend.bEnabled = enabled;
+	GLint blendSrc;
+	GLint blendDst;
+	glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
+	glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
+	state.blend.eSrcFactor = BlendFactor_GL_2_DGLE(blendSrc);
+	state.blend.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
+
+	_states.push(state);
+
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 { 
+	// state pop -> OpenGL
+	State state = _states.top();
+	_states.pop();
+	if (state.blend.bEnabled)
+		glEnable(GL_BLEND);
+	else
+		glDisable(GL_BLEND);
+	glBlendFunc(BlendFactor_DGLE_2_GL(state.blend.eSrcFactor), BlendFactor_DGLE_2_GL(state.blend.eDstFactor));
+
 	return S_OK;
 }
 
@@ -651,14 +704,6 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetMatrix(TMatrix4x4& stMatrix, E_MATRIX_TY
 		case MT_PROJECTION: stMatrix = P; break;
 		case MT_TEXTURE: /* TODO: */ break;
 	}
-	return S_OK;
-}
-
-DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_CORE_RENDERER_DRAW_MODE eMode, uint uiCount)
-{ 
-	GLGeometryBuffer buffer(CRBT_HARDWARE_STATIC, false, this);
-	buffer.Reallocate(stDrawDesc, uiCount, 0, eMode);
-	DrawBuffer(&buffer);
 	return S_OK;
 }
 
@@ -697,6 +742,14 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 	}
 	else
 		return _p_P_shader.get();
+}
+
+DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_CORE_RENDERER_DRAW_MODE eMode, uint uiCount)
+{ 
+	GLGeometryBuffer buffer(CRBT_HARDWARE_STATIC, false, this);
+	buffer.Reallocate(stDrawDesc, uiCount, 0, eMode);
+	DrawBuffer(&buffer);
+	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
@@ -784,7 +837,11 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetColor(TColor4& stColor)
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::ToggleBlendState(bool bEnabled)
-{ 
+{
+	if (bEnabled)
+		glEnable(GL_BLEND);
+	else
+		glDisable(GL_BLEND);
 	return S_OK;
 }
 
@@ -795,11 +852,18 @@ DGLE_RESULT DGLE_API GL3XCoreRender::ToggleAlphaTestState(bool bEnabled)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetBlendState(const TBlendStateDesc& stState)
 { 
+	glBlendFunc(BlendFactor_DGLE_2_GL(stState.eSrcFactor), BlendFactor_DGLE_2_GL(stState.eDstFactor));
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetBlendState(TBlendStateDesc& stState)
 { 
+	GLint blendSrc;
+	GLint blendDst;
+	glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
+	glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
+	stState.eSrcFactor = BlendFactor_GL_2_DGLE(blendSrc);
+	stState.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
 	return S_OK;
 }
 

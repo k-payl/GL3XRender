@@ -26,10 +26,10 @@ public:
 	const bool normalsInputAttribute;
 	const bool textCoordsInputAttribute;
 
-	GLuint ID_Program() const { return programID; }
-
 	GLShader(bool normals, bool coords, const char *v[], size_t vn, const char *f[], size_t fn);
 	~GLShader();
+
+	GLuint ID_Program() const { return programID; }
 };
 
 enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
@@ -43,6 +43,10 @@ enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
 	CGAP_TEX =			0b00000100,
 };
 
+struct State
+{
+	TBlendStateDesc blend;
+};
 
 class GL3XCoreRender final : public ICoreRenderer
 {
@@ -56,9 +60,8 @@ class GL3XCoreRender final : public ICoreRenderer
 	GLint _iMaxAnisotropy;
 	GLuint tex_ID_last_binded;
 	uint tex_layer_was_binded;
+	std::stack<State> _states;
 
-	void _load_and_create_shaders(GLShader& shader, const char *v[], size_t vn, const char *f[], size_t fn);
-	void _delete_shader(const GLShader& shader);
 	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on, bool is2d);
 
 public:

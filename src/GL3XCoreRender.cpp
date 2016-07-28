@@ -15,6 +15,11 @@ using namespace std;
 
 #define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
 #define LOG_WARNING(txt) LogToDGLE(std::string(txt).c_str(), LT_WARNING, __FILE__, __LINE__)
+#define E_GUARDS() \
+{\
+	GLenum err = glGetError(); \
+	assert(err == GL_NO_ERROR); \
+}
 
 extern bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin);
 extern void MakeCurrent();
@@ -532,6 +537,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetRenderTarget(ICoreTexture*& prTexture)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const uint8* pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags)
 { 
+	E_GUARDS()
 
 	// TODO: implenment NPOT texture
 	bool powerOfTwo_h = !(uiHeight == 0) && !(uiHeight & (uiHeight - 1));
@@ -635,6 +641,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	pTex = pGLTexture;
+
+	E_GUARDS()
 	return result;
 }
 
@@ -661,7 +669,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 
 	GLboolean enabled;
 	glGetBooleanv(GL_BLEND, &enabled);
-	state.blend.bEnabled = enabled;
+	state.blend.bEnabled = enabled != 0;
 	GLint blendSrc;
 	GLint blendDst;
 	glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
@@ -753,14 +761,20 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_CORE_RENDERER_DRAW_MODE eMode, uint uiCount)
 { 
+	E_GUARDS()
+
 	GLGeometryBuffer buffer(CRBT_HARDWARE_STATIC, false, this);
 	buffer.Reallocate(stDrawDesc, uiCount, 0, eMode);
 	DrawBuffer(&buffer);
+
+	E_GUARDS()
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 { 
+	E_GUARDS()
+
 	GLGeometryBuffer *b = dynamic_cast<GLGeometryBuffer*>(pBuffer);
 	if (b == nullptr) return S_OK;	
 
@@ -825,6 +839,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 
 	glBindVertexArray(0);
 
+	E_GUARDS()
 	return S_OK;
 }
 

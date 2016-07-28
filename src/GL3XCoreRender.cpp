@@ -25,6 +25,8 @@ static IEngineCore *_core;
 
 #include "shaders.h"
 
+#pragma warning(push)
+#pragma warning(disable:4715)
 inline GLenum BlendFactor_DGLE_2_GL(E_BLEND_FACTOR dgleFactor)
 {
 	switch (dgleFactor)
@@ -42,9 +44,9 @@ inline GLenum BlendFactor_DGLE_2_GL(E_BLEND_FACTOR dgleFactor)
 	}
 }
 
-inline E_BLEND_FACTOR BlendFactor_GL_2_DGLE(GLenum d3dFactor)
+inline E_BLEND_FACTOR BlendFactor_GL_2_DGLE(GLenum glFactor)
 {
-	switch (d3dFactor)
+	switch (glFactor)
 	{
 		case GL_ZERO:				return BF_ZERO;
 		case GL_ONE:				return BF_ONE;
@@ -58,6 +60,7 @@ inline E_BLEND_FACTOR BlendFactor_GL_2_DGLE(GLenum d3dFactor)
 			assert(false);
 	}
 }
+#pragma warning(pop)
 
 static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
 {
@@ -405,6 +408,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
 	glClearDepth(1.0);	
+	glActiveTexture(GL_TEXTURE0 + 0);
 
 	return S_OK;
 }
@@ -653,7 +657,6 @@ DGLE_RESULT DGLE_API GL3XCoreRender::InvalidateStateFilter()
 
 DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 {
-	// OpenGL get -> state, push
 	State state;
 
 	GLboolean enabled;
@@ -666,6 +669,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 	state.blend.eSrcFactor = BlendFactor_GL_2_DGLE(blendSrc);
 	state.blend.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
 
+	state.tex_ID_last_binded = tex_ID_last_binded;
+
 	_states.push(state);
 
 	return S_OK;
@@ -673,14 +678,16 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 
 DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 { 
-	// state pop -> OpenGL
 	State state = _states.top();
+
 	_states.pop();
 	if (state.blend.bEnabled)
 		glEnable(GL_BLEND);
 	else
 		glDisable(GL_BLEND);
 	glBlendFunc(BlendFactor_DGLE_2_GL(state.blend.eSrcFactor), BlendFactor_DGLE_2_GL(state.blend.eDstFactor));
+
+	tex_ID_last_binded = state.tex_ID_last_binded;
 
 	return S_OK;
 }
@@ -764,10 +771,12 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 	const GLuint choosenProgram = pChoosenShader->ID_Program();
 	glUseProgram(choosenProgram);
 
-	const TMatrix4x4 MVP = MV * P;
-	const GLuint MVP_ID = glGetUniformLocation(choosenProgram, "MVP");
-	glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &MVP._1D[0]);
-	
+	if (choosenProgram != _p_PT2D_shader->ID_Program())
+	{
+		const TMatrix4x4 MVP = MV * P;
+		const GLuint MVP_ID = glGetUniformLocation(choosenProgram, "MVP");
+		glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &MVP._1D[0]);
+	}
 	if (choosenProgram == _p_PN_shader->ID_Program() || choosenProgram == _p_PNT_shader->ID_Program())
 	{		
 		const TMatrix4x4 NM = MatrixTranspose(MatrixInverse(MV)); // Normal matrix = (MV^-1)^T
@@ -780,15 +789,12 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		const GLuint nL_ID = glGetUniformLocation(choosenProgram, "nL");
 		glUniform3f(nL_ID, nL.x, nL.y, nL.z);
 	}
-
 	if (choosenProgram == _p_PNT_shader->ID_Program() || choosenProgram == _p_PT_shader->ID_Program() || choosenProgram == _p_PT2D_shader->ID_Program())
 	{
-		glActiveTexture(GL_TEXTURE0 + tex_layer_was_binded);
 		glBindTexture(GL_TEXTURE_2D, tex_ID_last_binded);
 		const GLuint tex_ID = glGetUniformLocation(choosenProgram, "texture0");
 		glUniform1i(tex_ID, 0);
 	}
-
 	if (choosenProgram == _p_PT2D_shader->ID_Program())
 	{
 		const GLuint width_ID = glGetUniformLocation(choosenProgram, "screenWidth");
@@ -889,25 +895,17 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetRasterizerState(TRasterizerStateDesc& st
 
 DGLE_RESULT DGLE_API GL3XCoreRender::BindTexture(ICoreTexture* pTex, uint uiTextureLayer)
 { 
-	assert(uiTextureLayer == 0 || (uiTextureLayer != 0 && pTex == nullptr) ); // other are not implemented
-
+	assert(
+		uiTextureLayer == 0 ||						// bind 0 
+		(uiTextureLayer != 0 && pTex == nullptr) ); // unbind every
+	
 	GLTexture *pGLTex = static_cast<GLTexture*>(pTex);
 	
 	if (pGLTex == nullptr)
-	{
-		glBindTexture(GL_TEXTURE_2D, 0);
 		tex_ID_last_binded = 0;
-	}
 	else
-	{
-		//glActiveTexture(GL_TEXTURE0 + uiTextureLayer);
-		tex_layer_was_binded = uiTextureLayer;
 		tex_ID_last_binded = pGLTex->Texture_ID();
-		//glBindTexture(GL_TEXTURE_2D, pGLTex->Texture_ID());
-		//const GLuint uniform_ID = glGetUniformLocation(_PN_shader.programID, "texture0");
-		//glUniform1i(uniform_ID, uiTextureLayer);
-	}
-	
+
 	return S_OK;
 }
 

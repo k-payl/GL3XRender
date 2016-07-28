@@ -46,6 +46,7 @@ enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
 struct State
 {
 	TBlendStateDesc blend;
+	GLuint tex_ID_last_binded;
 };
 
 class GL3XCoreRender final : public ICoreRenderer
@@ -59,7 +60,6 @@ class GL3XCoreRender final : public ICoreRenderer
 	TMatrix4x4 P;
 	GLint _iMaxAnisotropy;
 	GLuint tex_ID_last_binded;
-	uint tex_layer_was_binded;
 	std::stack<State> _states;
 
 	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on, bool is2d);

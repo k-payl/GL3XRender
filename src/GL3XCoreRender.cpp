@@ -97,7 +97,7 @@ static void checkShaderError(uint id, GLenum constant)
 }
 
 GLShader::GLShader(bool normals, bool coords, const char *v[], size_t vn, const char *f[], size_t fn) :
-	normalsInputAttribute(normalsInputAttribute), textCoordsInputAttribute(coords)
+	normalsInputAttribute(normals), textCoordsInputAttribute(coords)
 {
 	LOG_INFO("GLShader()");
 	programID = glCreateProgram();

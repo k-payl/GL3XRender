@@ -11,51 +11,57 @@ See "DGLE.h" for more details.
 #include "DGLE.h"
 #include "DGLE_CoreRenderer.h"
 #include "GL/glew.h"
-#include<memory>
+#include<set>
+
 using namespace DGLE;
 
+struct ShaderGenerated;
+
+enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
+{
+	CGAP_NONE = 0b00000000,
+	CGAP_POS_NORM = 0b00000011,
+	CGAP_POS_TEX = 0b00000101,
+	CGAP_POS_NORM_TEX = 0b00000111,
+	CGAP_POS = 0b00000001,
+	CGAP_NORM = 0b00000010,
+	CGAP_TEX = 0b00000100,
+};
 
 class GLShader
 {
+	const ShaderGenerated *p;
 	GLuint programID;
 	GLuint fragID;
 	GLuint vertID;
 
 public:
 
-	const bool normalsInputAttribute;
-	const bool textCoordsInputAttribute;
-
-	GLShader(bool normals, bool coords, const char *v[], size_t vn, const char *f[], size_t fn);
-	~GLShader();
-
+	void Init(const ShaderGenerated& parent);
+	void Free();
 	GLuint ID_Program() const { return programID; }
-};
+	bool bPositionIs2D() const;
+	bool bInputNormals() const;
+	bool bInputTextureCoords() const;
+	bool bUniformNM() const;
+	bool bUniformnL() const;
+	bool bUniformTexture0() const;
 
-enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
-{
-	CGAP_NONE =			0b00000000,
-	CGAP_POS_NORM =		0b00000011,
-	CGAP_POS_TEX =		0b00000101,
-	CGAP_POS_NORM_TEX =	0b00000111,
-	CGAP_POS =			0b00000001,
-	CGAP_NORM =			0b00000010,
-	CGAP_TEX =			0b00000100,
+	bool operator<(const GLShader& r) const;
+	bool operator==(const GLShader& r) const;
+	unsigned int hash() const;
 };
 
 struct State
 {
 	TBlendStateDesc blend;
+	bool alphaTest;
 	GLuint tex_ID_last_binded;
 };
 
 class GL3XCoreRender final : public ICoreRenderer
 {
-	std::unique_ptr<GLShader> _p_P_shader;
-	std::unique_ptr<GLShader> _p_PN_shader;
-	std::unique_ptr<GLShader> _p_PNT_shader;
-	std::unique_ptr<GLShader> _p_PT_shader;
-	std::unique_ptr<GLShader> _p_PT2D_shader;
+	std::set<GLShader> _shaders;
 	TMatrix4x4 MV;
 	TMatrix4x4 P;
 	GLint _iMaxAnisotropy;

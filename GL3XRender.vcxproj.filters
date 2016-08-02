@@ -8,6 +8,7 @@
       <Filter>GLEW</Filter>
     </ClCompile>
     <ClCompile Include="src\wgl.cpp" />
+    <ClCompile Include="src\shaders.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src/GL3XCoreRender.h" />

@@ -8,7 +8,7 @@
       <Filter>GLEW</Filter>
     </ClCompile>
     <ClCompile Include="src\wgl.cpp" />
-    <ClCompile Include="src\shaders.cpp" />
+    <ClCompile Include="src\shaderSources.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src/GL3XCoreRender.h" />
@@ -19,7 +19,7 @@
     <ClInclude Include="src\GL\glew.h">
       <Filter>GLEW</Filter>
     </ClInclude>
-    <ClInclude Include="src\shaders.h" />
+    <ClInclude Include="src\shaderSources.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />

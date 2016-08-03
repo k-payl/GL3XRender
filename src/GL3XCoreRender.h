@@ -15,7 +15,7 @@ See "DGLE.h" for more details.
 
 using namespace DGLE;
 
-struct ShaderGenerated;
+struct ShaderSrc;
 
 enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
 {
@@ -30,14 +30,14 @@ enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
 
 class GLShader
 {
-	const ShaderGenerated *p;
+	const ShaderSrc *p;
 	GLuint programID;
 	GLuint fragID;
 	GLuint vertID;
 
 public:
 
-	void Init(const ShaderGenerated& parent);
+	void Init(const ShaderSrc& parent);
 	void Free();
 	GLuint ID_Program() const { return programID; }
 	bool bPositionIs2D() const;

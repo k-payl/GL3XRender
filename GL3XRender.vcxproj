@@ -167,14 +167,14 @@
     <ClInclude Include="src/PluginCore.h" />
     <ClInclude Include="src\GL\glew.h" />
     <ClInclude Include="src\GL\wglew.h" />
-    <ClInclude Include="src\shaders.h" />
+    <ClInclude Include="src\shaderSources.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src/GL3XCoreRender.cpp" />
     <ClCompile Include="src/Main.cpp" />
     <ClCompile Include="src/PluginCore.cpp" />
     <ClCompile Include="src\GL\glew.c" />
-    <ClCompile Include="src\shaders.cpp" />
+    <ClCompile Include="src\shaderSources.cpp" />
     <ClCompile Include="src\wgl.cpp" />
   </ItemGroup>
   <ItemGroup>

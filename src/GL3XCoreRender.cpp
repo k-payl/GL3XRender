@@ -8,19 +8,28 @@ See "DGLE.h" for more details.
 */
 
 #include "GL3XCoreRender.h"
-#include <vector>
 #include <assert.h>
 #include <algorithm>
-#include <bitset>
-#include <sstream>
 using namespace std;
 
 #define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
 #define LOG_WARNING(txt) LogToDGLE(std::string(txt).c_str(), LT_WARNING, __FILE__, __LINE__)
-#define E_GUARDS() \
-{\
-	GLenum err = glGetError(); \
-	assert(err == GL_NO_ERROR); \
+void E_GUARDS()
+{
+	GLenum err = glGetError();
+	if (err != GL_NO_ERROR)
+	{
+		string error;
+
+			switch (err) {
+			case GL_INVALID_OPERATION:      error = "INVALID_OPERATION";      break;
+			case GL_INVALID_ENUM:           error = "INVALID_ENUM";           break;
+			case GL_INVALID_VALUE:          error = "INVALID_VALUE";          break;
+			case GL_OUT_OF_MEMORY:          error = "OUT_OF_MEMORY";          break;
+			case GL_INVALID_FRAMEBUFFER_OPERATION:  error = "INVALID_FRAMEBUFFER_OPERATION";  break;
+		}
+		assert(err == GL_NO_ERROR);
+	}
 }
 
 extern bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin);
@@ -30,7 +39,7 @@ extern void SwapBuffer();
 
 static IEngineCore *_core;
 
-#include "shaders.h"
+#include "shaderSources.h"
 
 #pragma warning(push)
 #pragma warning(disable:4715)
@@ -103,8 +112,9 @@ static void checkShaderError(uint id, GLenum constant)
 	}
 }
 
-void GLShader::Init(const ShaderGenerated& parent)
+void GLShader::Init(const ShaderSrc& parent)
 {
+	E_GUARDS();
 	p = &parent;
 	LOG_INFO("GLShader() for ");
 	programID = glCreateProgram();
@@ -120,14 +130,17 @@ void GLShader::Init(const ShaderGenerated& parent)
 	glAttachShader(programID, fragID);
 	glLinkProgram(programID);
 	checkShaderError(programID, GL_LINK_STATUS);
+	E_GUARDS();
 }
 
 void GLShader::Free()
 {
 	LOG_INFO("~GLShader()");
+	E_GUARDS();
 	if (vertID != 0) glDeleteShader(vertID);
 	if (fragID != 0) glDeleteShader(fragID);
 	if (programID != 0) glDeleteProgram(programID);
+	E_GUARDS();
 }
 
 bool GLShader::bPositionIs2D() const { return p->bPositionIs2D; }
@@ -225,6 +238,7 @@ public:
 	}
 	inline void ToggleAttribInVAO(int attrib_ind, bool value)
 	{
+		E_GUARDS();
 		if (value && !activated_attributes[attrib_ind])
 		{
 			activated_attributes[attrib_ind] = true;
@@ -235,6 +249,7 @@ public:
 			activated_attributes[attrib_ind] = false;
 			glDisableVertexAttribArray(attrib_ind);
 		}
+		E_GUARDS();
 	}
 
 	GLsizei vertexSize(const TDrawDataDesc& stDrawDesc)
@@ -252,24 +267,29 @@ public:
 	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd) :
 		_bAlreadyInitalized(false), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE), activated_attributes{0}, _b2dPosition(false)
 	{		
+		E_GUARDS();
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);	
 		if (indexBuffer) glGenBuffers(1, &_ibo);
 		//LOG_INFO("GLGeometryBuffer()");
+		E_GUARDS();
 	}
 
 	~GLGeometryBuffer()
 	{		
+		E_GUARDS();
 		if (_ibo!=0) glDeleteBuffers(1, &_ibo);
 		glDeleteBuffers(1, &_vbo);
 		glDeleteVertexArrays(1, &_vao);
 		//LOG_INFO("~GLGeometryBuffer()");
+		E_GUARDS();
 	}
 
 	DGLE_RESULT DGLE_API GetGeometryData(TDrawDataDesc& stDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override {return S_OK;}
 	DGLE_RESULT DGLE_API SetGeometryData(const TDrawDataDesc& stDrawDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override	{ return S_OK; } // what is purpose if Reallocate() exists?
 	DGLE_RESULT DGLE_API Reallocate(const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode) override 
 	{
+		E_GUARDS();
 		_eDrawMode = eMode;
 		_vertexCount = uiVerticesCount;
 		_indexCount = uiIndicesCount;
@@ -320,6 +340,7 @@ public:
 		else // update data in buffer
 		{ // TODO
 		}
+		E_GUARDS();
 		return S_OK;
 	}
 	DGLE_RESULT DGLE_API GetBufferDimensions(uint& uiVerticesDataSize, uint& uiVerticesCount, uint& uiIndexesDataSize, uint& uiIndexesCount) override 
@@ -360,12 +381,16 @@ public:
 	GLTexture(bool bGenerateMipmaps) :
 		_bGenerateMipmaps(bGenerateMipmaps)
 	{
+		E_GUARDS();
 		glGenTextures(1, &_textureID);
+		E_GUARDS();
 		//LOG_INFO("GLTexture()");
 	}
 	~GLTexture()
 	{
+		E_GUARDS();
 		glDeleteTextures(1, &_textureID);
+		E_GUARDS();
 		//LOG_INFO("~GLTexture()");
 	}
 
@@ -378,6 +403,7 @@ public:
 	DGLE_RESULT DGLE_API SetPixelData(const uint8* pData, uint uiDataSize, uint uiLodLevel) override {return S_OK;}
 	DGLE_RESULT DGLE_API Reallocate(const uint8* pData, uint uiWidth, uint uiHeight, bool bMipMaps, E_TEXTURE_DATA_FORMAT eDataFormat) override 
 	{
+		E_GUARDS();
 		GLint VRAMFormat;
 		GLenum sourceFormat;
 		GLenum sourceType = GL_UNSIGNED_BYTE;
@@ -390,6 +416,7 @@ public:
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 
+		E_GUARDS();
 		return S_OK;
 	}
 	DGLE_RESULT DGLE_API GetBaseObject(IBaseRenderObjectContainer*& prObj) override {return S_OK;}
@@ -431,17 +458,14 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	sprintf(buffer, OGLI"%i.%i", major, minor);
 	LOG_INFO(string(buffer));
 	E_GUARDS();
-	vector<string> vec;
-	for each (const ShaderGenerated& sh in _shadersGenerated)
+
+	for each (const ShaderSrc& sh in getShaderSources())
 	{
 		GLShader s;
 		s.Init(sh);
 		_shaders.insert(s);
-		stringstream ss;
-		ss << std::bitset<8>(s.hash());
-		auto g = s.hash();
-		vec.push_back(ss.str());
 	}
+
 	E_GUARDS();
 	if (GLEW_EXT_texture_filter_anisotropic)
 		glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_iMaxAnisotropy);
@@ -482,13 +506,17 @@ DGLE_RESULT DGLE_API GL3XCoreRender::MakeCurrent()
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Present()
 { 
+	E_GUARDS();
 	SwapBuffer();
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetClearColor(const TColor4& stColor)
 { 
+	E_GUARDS();
 	glClearColor(stColor.r, stColor.g, stColor.b, stColor.a);
+	E_GUARDS();
 	return S_OK;
 }
 
@@ -499,26 +527,32 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetClearColor(TColor4& stColor)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Clear(bool bColor, bool bDepth, bool bStencil)
 { 
+	E_GUARDS();
 	GLbitfield mask = 0;
 	if (bColor) mask |= GL_COLOR_BUFFER_BIT;
 	if (bDepth) mask |= GL_DEPTH_BUFFER_BIT;
 	if (bStencil) mask |= GL_STENCIL_BUFFER_BIT;
 	glClear(mask);
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetViewport(uint x, uint y, uint width, uint height)
 { 
+	E_GUARDS();
 	glViewport(x, y, width, height);
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetViewport(uint& x, uint& y, uint& width, uint& height)
 { 
+	E_GUARDS();
 	GLint vp[4];
 	glGetIntegerv(GL_VIEWPORT, vp);
 	x = vp[0]; y = vp[1];
 	width = vp[2]; height = vp[3];
+	E_GUARDS();
 	return S_OK;
 }
 
@@ -534,29 +568,37 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetScissorRectangle(uint& x, uint& y, uint&
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetLineWidth(float fWidth)
 { 
+	E_GUARDS();
 	glLineWidth(fWidth);
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetLineWidth(float& fWidth)
 { 
+	E_GUARDS();
 	GLfloat value;
 	glGetFloatv(GL_LINE_WIDTH, &value);
 	fWidth = value;
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetPointSize(float fSize)
 { 
+	E_GUARDS();
 	glPointSize(fSize);
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetPointSize(float& fSize)
 { 
+	E_GUARDS();
 	GLfloat value;
 	glGetFloatv(GL_POINT_SIZE, &value);
 	fSize = value;
+	E_GUARDS();
 	return S_OK;
 }
 
@@ -577,7 +619,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetRenderTarget(ICoreTexture*& prTexture)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const uint8* pData, uint uiWidth, uint uiHeight, bool bMipmapsPresented, E_CORE_RENDERER_DATA_ALIGNMENT eDataAlignment, E_TEXTURE_DATA_FORMAT eDataFormat, E_TEXTURE_LOAD_FLAGS eLoadFlags)
 { 
-	E_GUARDS()
+	E_GUARDS();
 
 	// TODO: implenment NPOT texture
 	const bool powerOfTwo_h = !(uiHeight == 0) && !(uiHeight & (uiHeight - 1));
@@ -597,59 +639,60 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 
 	glBindTexture(GL_TEXTURE_2D, pGLTexture->Texture_ID());
 
-	
+	E_GUARDS();
 	// filtering
 	if (eLoadFlags & TLF_FILTERING_ANISOTROPIC)
 	{
-		assert(GLEW_EXT_texture_filter_anisotropic);
+		assert(GLEW_EXT_texture_filter_anisotropic);E_GUARDS();
 
-		GLint anisotropic_level = 4;
+		GLint anisotropic_level = 4;E_GUARDS();
 		if (eLoadFlags & TLF_ANISOTROPY_2X)	anisotropic_level = 2;
 		else if (eLoadFlags & TLF_ANISOTROPY_4X) anisotropic_level = 4;
 		else if (eLoadFlags & TLF_ANISOTROPY_8X) anisotropic_level = 8;
 		else if (eLoadFlags & TLF_ANISOTROPY_16X) anisotropic_level = 16;
 
-		if (anisotropic_level > _iMaxAnisotropy) anisotropic_level = _iMaxAnisotropy;
+		if (anisotropic_level > _iMaxAnisotropy) anisotropic_level = _iMaxAnisotropy;E_GUARDS();
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropic_level);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropic_level);E_GUARDS();
 
 		if (eLoadFlags & TLF_GENERATE_MIPMAPS)
 		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);E_GUARDS();
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);E_GUARDS();
 		}
 		else
 		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);			
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);E_GUARDS();
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);E_GUARDS();			
 		}
 	}
 	else
 	{
-		GLint glFilter;
+		GLint glFilter;E_GUARDS();
 		if (eLoadFlags & TLF_GENERATE_MIPMAPS)
 		{
 			switch (eLoadFlags)
 			{
-				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST_MIPMAP_NEAREST; break;
-				case TLF_FILTERING_BILINEAR:	glFilter = GL_LINEAR_MIPMAP_NEAREST; break;
+				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST_MIPMAP_NEAREST;E_GUARDS(); break;E_GUARDS();
+				case TLF_FILTERING_BILINEAR:	glFilter = GL_LINEAR_MIPMAP_NEAREST;E_GUARDS(); break;E_GUARDS();
 				case TLF_FILTERING_TRILINEAR:
-				default:						glFilter = GL_LINEAR_MIPMAP_LINEAR; break;
+				default:						glFilter = GL_LINEAR_MIPMAP_LINEAR;E_GUARDS(); break;E_GUARDS();
 			}
 		}
 		else
 		{
 			switch (eLoadFlags)
 			{
-				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST; break;
+				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST;E_GUARDS(); break;E_GUARDS();
 				case TLF_FILTERING_BILINEAR:
 				case TLF_FILTERING_TRILINEAR: // mustn't happen without mipmaps
-				default:						glFilter = GL_LINEAR; break;
+				default:						glFilter = GL_LINEAR;E_GUARDS(); break;E_GUARDS();
 			}
 		}
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glFilter);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glFilter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glFilter); 
+		GLenum err = glGetError(); E_GUARDS();
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glFilter);E_GUARDS();
 
 	}
 
@@ -682,15 +725,20 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 
 	pTex = pGLTexture;
 
-	E_GUARDS()
+	E_GUARDS();
 	return result;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateGeometryBuffer(ICoreGeometryBuffer*& prBuffer, const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode, E_CORE_RENDERER_BUFFER_TYPE eType)
 { 
+	E_GUARDS();
+
 	GLGeometryBuffer* pGLBuffer = new GLGeometryBuffer(eType, uiIndicesCount > 0, this);
 	prBuffer = pGLBuffer;
-	return pGLBuffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
+	auto res = pGLBuffer->Reallocate(stDrawDesc, uiVerticesCount, uiIndicesCount, eMode);
+
+	E_GUARDS();
+	return res;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::ToggleStateFilter(bool bEnabled)
@@ -705,6 +753,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::InvalidateStateFilter()
 
 DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 {
+	E_GUARDS();
+
 	State state;
 
 	GLboolean enabled;
@@ -717,18 +767,22 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 	state.blend.eSrcFactor = BlendFactor_GL_2_DGLE(blendSrc);
 	state.blend.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
 
-	glGetBooleanv(GL_ALPHA_TEST, &enabled);
-	state.alphaTest = enabled != 0;
+	//glGetBooleanv(GL_ALPHA_TEST, &enabled);
+	//state.alphaTest = enabled != 0;
 
 	state.tex_ID_last_binded = tex_ID_last_binded;
 
 	_states.push(state);
+
+	E_GUARDS();
 
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 { 
+	E_GUARDS();
+
 	State state = _states.top();
 	_states.pop();
 
@@ -744,7 +798,9 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 	//	glDisable(GL_ALPHA_TEST);
 
 	tex_ID_last_binded = state.tex_ID_last_binded;
-
+	
+	E_GUARDS();
+	
 	return S_OK;
 }
 
@@ -824,19 +880,20 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_CORE_RENDERER_DRAW_MODE eMode, uint uiCount)
 { 
-	E_GUARDS()
+	E_GUARDS();
 
 	GLGeometryBuffer buffer(CRBT_HARDWARE_STATIC, false, this);
 	buffer.Reallocate(stDrawDesc, uiCount, 0, eMode);
 	DrawBuffer(&buffer);
 
-	E_GUARDS()
-	return S_OK;
+	E_GUARDS();
+	
+		return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 { 
-	E_GUARDS()
+	E_GUARDS();
 
 	GLGeometryBuffer *b = dynamic_cast<GLGeometryBuffer*>(pBuffer);
 	if (b == nullptr) return S_OK;	
@@ -896,8 +953,9 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 
 	glBindVertexArray(0);
 
-	E_GUARDS()
-	return S_OK;
+	E_GUARDS();
+	
+		return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetColor(const TColor4& stColor)
@@ -908,18 +966,28 @@ DGLE_RESULT DGLE_API GL3XCoreRender::SetColor(const TColor4& stColor)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetColor(TColor4& stColor)
 {
+	E_GUARDS();
+
 	GLfloat color[4];
 	glGetFloatv(GL_CURRENT_COLOR, color);
 	stColor = color;
+	
+	E_GUARDS(); 
+
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::ToggleBlendState(bool bEnabled)
 {
+	E_GUARDS();
+
 	if (bEnabled)
 		glEnable(GL_BLEND);
 	else
 		glDisable(GL_BLEND);
+	
+	E_GUARDS();
+
 	return S_OK;
 }
 
@@ -936,18 +1004,24 @@ DGLE_RESULT DGLE_API GL3XCoreRender::ToggleAlphaTestState(bool bEnabled)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetBlendState(const TBlendStateDesc& stState)
 { 
+	E_GUARDS();
 	glBlendFunc(BlendFactor_DGLE_2_GL(stState.eSrcFactor), BlendFactor_DGLE_2_GL(stState.eDstFactor));
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetBlendState(TBlendStateDesc& stState)
 { 
+	E_GUARDS();
+
 	GLint blendSrc;
 	GLint blendDst;
 	glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
 	glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
 	stState.eSrcFactor = BlendFactor_GL_2_DGLE(blendSrc);
 	stState.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
+	
+	E_GUARDS();
 	return S_OK;
 }
 
@@ -999,6 +1073,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetFixedFunctionPipelineAPI(IFixedFunctionP
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetDeviceMetric(E_CORE_RENDERER_METRIC_TYPE eMetric, int& iValue)
 {
+	E_GUARDS();
+
 	iValue = 0;
 	switch (eMetric)
 	{
@@ -1007,13 +1083,16 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetDeviceMetric(E_CORE_RENDERER_METRIC_TYPE
 		case CRMT_MAX_ANISOTROPY_LEVEL: if (GLEW_EXT_texture_filter_anisotropic) glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &iValue); break;
 		default: break;
 	}
+
 	E_GUARDS();
+
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::IsFeatureSupported(E_CORE_RENDERER_FEATURE_TYPE eFeature, bool& bIsSupported)
 { 
 	E_GUARDS();
+
 	bIsSupported = false;
 	switch (eFeature)
 	{
@@ -1035,6 +1114,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::IsFeatureSupported(E_CORE_RENDERER_FEATURE_
 	case CRFT_FRAME_BUFFER: break;
 	default: break;
 	}
+
 	E_GUARDS();
 	return S_OK;
 }

@@ -693,7 +693,12 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrap);
 
-	
+	if (eDataFormat == TDF_ALPHA8)
+	{
+		GLint swizzleMask[] = { GL_ONE, GL_ONE, GL_ONE, GL_RED };
+		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
+	}
+
 	GLint internalFormat;
 	GLenum sourceFormat;
 	GLenum sourceType = GL_UNSIGNED_BYTE;

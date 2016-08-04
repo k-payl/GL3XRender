@@ -199,8 +199,7 @@ static const char *f4[] = {
  "\n",
  "void main()\n",
  "{\n",
- "	vec4 tex = texture(texture0, UV);\n",
- "	color = vec4(1, 1, 1, tex.r);\n",
+ "	color = texture(texture0, UV);\n",
  "}\n",
  "\n",
  nullptr

@@ -434,7 +434,7 @@ public:
 //         Render       //
 //////////////////////////
 
-GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : _iMaxAnisotropy(0)
+GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore)
 {
 	_core = pCore;
 }
@@ -466,9 +466,6 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 		_shaders.push_back(s);
 	}
 
-	E_GUARDS();
-	if (GLEW_EXT_texture_filter_anisotropic)
-		glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_iMaxAnisotropy);
 	E_GUARDS();
 	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST); E_GUARDS();
@@ -635,6 +632,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 		else if (eLoadFlags & TLF_ANISOTROPY_4X) anisotropic_level = 4;
 		else if (eLoadFlags & TLF_ANISOTROPY_8X) anisotropic_level = 8;
 		else if (eLoadFlags & TLF_ANISOTROPY_16X) anisotropic_level = 16;
+
+		GLint _iMaxAnisotropy;
+		if (GLEW_EXT_texture_filter_anisotropic)
+			glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_iMaxAnisotropy);
 
 		if (anisotropic_level > _iMaxAnisotropy) anisotropic_level = _iMaxAnisotropy;E_GUARDS();
 

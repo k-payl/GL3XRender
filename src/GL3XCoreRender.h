@@ -62,19 +62,16 @@ struct State
 class GL3XCoreRender final : public ICoreRenderer
 {
 	std::vector<GLShader> _shaders;
+	std::stack<State> _states;
 	TMatrix4x4 MV;
-	TMatrix4x4 P;
-	GLint _iMaxAnisotropy;
+	TMatrix4x4 P;	
 	GLuint tex_ID_last_binded;
 	bool alphaTest;
-	std::stack<State> _states;
 
 	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on, bool is2d);
 
 public:
-
-	GLShader* GetShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED);
-
+	
 	GL3XCoreRender(IEngineCore *pCore);
 	
 	DGLE_RESULT DGLE_API Prepare(TCrRndrInitResults &stResults) override;

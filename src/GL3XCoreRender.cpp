@@ -817,7 +817,7 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 			shd.bUniformTexture0() == texture_binded &&
 			shd.bInputNormals() == (light_on && norm);
 	});
-	return &(const_cast<GLShader&>(*it));
+	return &(*it);
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_CORE_RENDERER_DRAW_MODE eMode, uint uiCount)

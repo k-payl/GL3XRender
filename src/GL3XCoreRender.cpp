@@ -844,45 +844,45 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 	const bool texture_binded = tex_ID_last_binded != 0;
 	const bool light_on = true;
 	
-	const GLShader* pChoosenShader = chooseShader(b->GetAttributes(), texture_binded, light_on, b->Is2dPosition());
+	const GLShader* pShd = chooseShader(b->GetAttributes(), texture_binded, light_on, b->Is2dPosition());
 
-	glUseProgram(pChoosenShader->ID_Program());
+	glUseProgram(pShd->ID_Program());
 
 	glBindVertexArray(b->VAO_ID());
 
-	b->ToggleAttribInVAO(GLGeometryBuffer::NORMALS_ATTRIBUTE, pChoosenShader->bInputNormals());
-	b->ToggleAttribInVAO(GLGeometryBuffer::TEXCOORDS_ATTRIBUTE, pChoosenShader->bInputTextureCoords());
+	b->ToggleAttribInVAO(GLGeometryBuffer::NORMALS_ATTRIBUTE, pShd->bInputNormals());
+	b->ToggleAttribInVAO(GLGeometryBuffer::TEXCOORDS_ATTRIBUTE, pShd->bInputTextureCoords());
 
-	if (!pChoosenShader->bPositionIs2D())
+	if (!pShd->bPositionIs2D())
 	{
 		const TMatrix4x4 MVP = MV * P;
-		const GLuint MVP_ID = glGetUniformLocation(pChoosenShader->ID_Program(), "MVP");
+		const GLuint MVP_ID = glGetUniformLocation(pShd->ID_Program(), "MVP");
 		glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &MVP._1D[0]);
 	}
-	if (pChoosenShader->bUniformNM())
+	if (pShd->bUniformNM())
 	{
 		const TMatrix4x4 NM = MatrixTranspose(MatrixInverse(MV)); // Normal matrix = (MV^-1)^T
-		const GLuint NM_ID = glGetUniformLocation(pChoosenShader->ID_Program(), "NM");
+		const GLuint NM_ID = glGetUniformLocation(pShd->ID_Program(), "NM");
 		glUniformMatrix4fv(NM_ID, 1, GL_FALSE, &NM._1D[0]);
 	}
-	if (pChoosenShader->bUniformnL())
+	if (pShd->bUniformnL())
 	{
 		const TVector3 L = { 0.2f, 1.0f, 1.0f };
 		const TVector3 nL = L / L.Length();
 		const TVector3 nL_eyeSpace = MV.ApplyToVector(nL);
-		const GLuint nL_ID = glGetUniformLocation(pChoosenShader->ID_Program(), "nL");
+		const GLuint nL_ID = glGetUniformLocation(pShd->ID_Program(), "nL");
 		glUniform3f(nL_ID, nL.x, nL.y, nL.z);
 	}
-	if (pChoosenShader->bUniformTexture0())
+	if (pShd->bUniformTexture0())
 	{
 		glBindTexture(GL_TEXTURE_2D, tex_ID_last_binded);
-		const GLuint tex_ID = glGetUniformLocation(pChoosenShader->ID_Program(), "texture0");
+		const GLuint tex_ID = glGetUniformLocation(pShd->ID_Program(), "texture0");
 		glUniform1i(tex_ID, 0);
 	}
-	if (pChoosenShader->bPositionIs2D())
+	if (pShd->bPositionIs2D())
 	{
-		const GLuint width_ID = glGetUniformLocation(pChoosenShader->ID_Program(), "screenWidth");
-		const GLuint height_ID = glGetUniformLocation(pChoosenShader->ID_Program(), "screenHeight");
+		const GLuint width_ID = glGetUniformLocation(pShd->ID_Program(), "screenWidth");
+		const GLuint height_ID = glGetUniformLocation(pShd->ID_Program(), "screenHeight");
 		uint x, y, w, h;
 		GetViewport(x, y, w, h);
 		glUniform1ui(width_ID, w);

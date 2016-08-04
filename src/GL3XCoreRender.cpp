@@ -10,6 +10,7 @@ See "DGLE.h" for more details.
 #include "GL3XCoreRender.h"
 #include <assert.h>
 #include <algorithm>
+#include <memory>
 using namespace std;
 
 #define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
@@ -83,32 +84,29 @@ static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFile
 	_core->WriteToLogEx(pcTxt, eType, pcSrcFileName, iSrcLineNumber);
 }
 
-static void checkShaderError(uint id, GLenum constant)
+static void checkShaderError(uint id, GLenum type)
 {
 	int iStatus;
 
-	if (constant == GL_COMPILE_STATUS)
+	if (type == GL_COMPILE_STATUS)
 		glGetShaderiv(id, GL_COMPILE_STATUS, &iStatus);
-	else if (constant == GL_LINK_STATUS)
+	else if (type == GL_LINK_STATUS)
 		glGetProgramiv(id, GL_LINK_STATUS, &iStatus);
 
 	if (iStatus == GL_FALSE)
 	{
-		char * buf;
-		GLint maxLenght = 0;
-		if (constant == GL_COMPILE_STATUS)
-			glGetShaderiv(id, GL_INFO_LOG_LENGTH, &maxLenght);
-		else if (constant == GL_LINK_STATUS)
-			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &maxLenght);
-		buf = new char[maxLenght];
-
-		if (constant == GL_COMPILE_STATUS)
-			glGetShaderInfoLog(id, maxLenght, &maxLenght, buf);
-		else if (constant == GL_LINK_STATUS)
-			glGetProgramInfoLog(id, maxLenght, &maxLenght, buf);
+		GLint length = 0;
+		if (type == GL_COMPILE_STATUS)
+			glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
+		else if (type == GL_LINK_STATUS)
+			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &length);
+		auto msg = make_unique<char[]>(length);
+		if (type == GL_COMPILE_STATUS)
+			glGetShaderInfoLog(id, length, &length, msg.get());
+		else if (type == GL_LINK_STATUS)
+			glGetProgramInfoLog(id, length, &length, msg.get());
 
 		assert(false);
-		delete buf;
 	}
 }
 

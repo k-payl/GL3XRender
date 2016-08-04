@@ -66,6 +66,7 @@ class GL3XCoreRender final : public ICoreRenderer
 	TMatrix4x4 P;
 	GLint _iMaxAnisotropy;
 	GLuint tex_ID_last_binded;
+	bool alphaTest;
 	std::stack<State> _states;
 
 	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on, bool is2d);

@@ -762,11 +762,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 	glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
 	state.blend.eSrcFactor = BlendFactor_GL_2_DGLE(blendSrc);
 	state.blend.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
-
-	//glGetBooleanv(GL_ALPHA_TEST, &enabled);
-	//state.alphaTest = enabled != 0;
-
 	state.tex_ID_last_binded = tex_ID_last_binded;
+	state.alphaTest = alphaTest;
 
 	_states.push(state);
 
@@ -787,12 +784,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 	else
 		glDisable(GL_BLEND);
 	glBlendFunc(BlendFactor_DGLE_2_GL(state.blend.eSrcFactor), BlendFactor_DGLE_2_GL(state.blend.eDstFactor));
-
-	//if (state.alphaTest)
-	//	glEnable(GL_ALPHA_TEST);
-	//else
-	//	glDisable(GL_ALPHA_TEST);
-
+	alphaTest = state.alphaTest;
 	tex_ID_last_binded = state.tex_ID_last_binded;
 	
 	E_GUARDS();
@@ -989,12 +981,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::ToggleBlendState(bool bEnabled)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::ToggleAlphaTestState(bool bEnabled)
 { 
-	E_GUARDS();
-	//if (bEnabled)
-	//	glEnable(GL_ALPHA_TEST);
-	//else
-	//	glDisable(GL_ALPHA_TEST);
-	E_GUARDS();
+	alphaTest = bEnabled;
 	return S_OK;
 }
 

@@ -9,5 +9,12 @@ out vec4 color;
 
 void main()
 {
-	color = texture(texture0, UV);
+	vec4 tex = texture(texture0, UV);
+
+#if ALPHA_TEST
+	if (tex.a <= 0.5)
+		discard;
+#endif
+
+	color = tex;
 }

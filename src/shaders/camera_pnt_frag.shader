@@ -12,6 +12,12 @@ out vec4 color;
 void main()
 {
 	vec3 nN = normalize(N);
-	vec4 Texture0Color = texture(texture0, UV);
-	color = vec4(vec3(max(dot(nN, nL), 0)), 1) * Texture0Color;
+	vec4 tex = texture(texture0, UV);
+
+#if ALPHA_TEST
+	if (tex.a <= 0.5)
+		discard;
+#endif
+	
+	color = vec4(vec3(max(dot(nN, nL), 0)), 1) * tex;
 }

@@ -622,21 +622,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 	const bool powerOfTwo_w = !(uiWidth == 0) && !(uiWidth & (uiWidth - 1));
 	assert(powerOfTwo_h && powerOfTwo_w);
 
-	// if bMipmapsPresented == true, we ignore this
-	// because this plugin supports hardware mipmap generation
-	// glGenerateMipmap() avaliable since OpenGL 3.0
-
-	// 1. Filtering
-	// 2. Wraping
-	// 3. Compressing
-	// 4. Generate mipmaps
-
 	GLTexture* pGLTexture = new GLTexture( (eLoadFlags & TLF_GENERATE_MIPMAPS) != 0 );
 
 	glBindTexture(GL_TEXTURE_2D, pGLTexture->Texture_ID());
 
-	E_GUARDS();
-	// filtering
 	if (eLoadFlags & TLF_FILTERING_ANISOTROPIC)
 	{
 		assert(GLEW_EXT_texture_filter_anisotropic);E_GUARDS();
@@ -692,7 +681,6 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 
 	}
 
-	// wraping
 	GLint glWrap;
 	switch (eLoadFlags)
 	{
@@ -816,40 +804,6 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetMatrix(TMatrix4x4& stMatrix, E_MATRIX_TY
 
 GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_attributes, bool texture_binded, bool light_on, bool is2D)
 {
-	//if (is2D)
-	//{
-	//	assert(model_attributes & CGAP_POS);
-	//	assert(model_attributes & CGAP_TEX);
-	//	return _p_PT2D_shader.get();
-	//}
-
-	//if (texture_binded && light_on)
-	//{		
-	//	if (model_attributes == CGAP_POS_NORM) return _p_PN_shader.get();
-	//	if (model_attributes == CGAP_POS_NORM_TEX) return _p_PNT_shader.get();
-	//	if (model_attributes == CGAP_POS_TEX) return _p_PT_shader.get();
-	//	assert(false); // unreachable
-	//	return _p_P_shader.get();
-	//}
-	//else if (!texture_binded && light_on)
-	//{
-	//	if (model_attributes == CGAP_POS_NORM) return _p_PN_shader.get();
-	//	if (model_attributes == CGAP_POS_NORM_TEX) return _p_PN_shader.get();
-	//	if (model_attributes == CGAP_POS_TEX) return _p_PT_shader.get();
-	//	assert(false); // unreachable
-	//	return _p_P_shader.get();
-	//}
-	//else if (texture_binded && !light_on)
-	//{
-	//	if (model_attributes == CGAP_POS_NORM) return _p_P_shader.get();
-	//	if (model_attributes == CGAP_POS_NORM_TEX) return _p_PT_shader.get();
-	//	if (model_attributes == CGAP_POS_TEX) return _p_PT_shader.get();
-	//	assert(false); // unreachable
-	//	return _p_P_shader.get();
-	//}
-	//else
-	//	return _p_P_shader.get();
-
 	bool norm = (model_attributes & CGAP_NORM) != CGAP_NONE;
 	bool tex = (model_attributes & CGAP_TEX) != CGAP_NONE;
 	

@@ -751,8 +751,14 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 	glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
 	state.blend.eSrcFactor = BlendFactor_GL_2_DGLE(blendSrc);
 	state.blend.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
+
 	state.tex_ID_last_binded = tex_ID_last_binded;
+	
 	state.alphaTest = alphaTest;
+
+	glGetBooleanv(GL_DEPTH_TEST, &enabled);
+	state.depth.bDepthTestEnabled = enabled;
+	//TODO: depth stencil
 
 	_states.push(state);
 
@@ -773,9 +779,17 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 	else
 		glDisable(GL_BLEND);
 	glBlendFunc(BlendFactor_DGLE_2_GL(state.blend.eSrcFactor), BlendFactor_DGLE_2_GL(state.blend.eDstFactor));
+	
 	alphaTest = state.alphaTest;
+	
 	tex_ID_last_binded = state.tex_ID_last_binded;
 	
+	if (state.depth.bDepthTestEnabled)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+	//TODO: depth stencil
+
 	E_GUARDS();
 	
 	return S_OK;
@@ -825,13 +839,21 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Draw(const TDrawDataDesc& stDrawDesc, E_COR
 { 
 	E_GUARDS();
 
+	PushStates();
+	TDepthStencilDesc depthState;
+	GetDepthStencilState(depthState);
+	depthState.bDepthTestEnabled = false;
+	SetDepthStencilState(depthState);
+
 	GLGeometryBuffer buffer(CRBT_HARDWARE_STATIC, false, this);
 	buffer.Reallocate(stDrawDesc, uiCount, 0, eMode);
 	DrawBuffer(&buffer);
 
+	PopStates();
+
 	E_GUARDS();
 	
-		return S_OK;
+	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
@@ -943,7 +965,13 @@ DGLE_RESULT DGLE_API GL3XCoreRender::ToggleAlphaTestState(bool bEnabled)
 DGLE_RESULT DGLE_API GL3XCoreRender::SetBlendState(const TBlendStateDesc& stState)
 { 
 	E_GUARDS();
+
+	if (stState.bEnabled)
+		glEnable(GL_BLEND);
+	else
+		glDisable(GL_BLEND);
 	glBlendFunc(BlendFactor_DGLE_2_GL(stState.eSrcFactor), BlendFactor_DGLE_2_GL(stState.eDstFactor));
+
 	E_GUARDS();
 	return S_OK;
 }
@@ -958,18 +986,38 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetBlendState(TBlendStateDesc& stState)
 	glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
 	stState.eSrcFactor = BlendFactor_GL_2_DGLE(blendSrc);
 	stState.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
-	
+	GLboolean enabled;
+	glGetBooleanv(GL_BLEND, &enabled);
+	stState.bEnabled = enabled;
+
 	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetDepthStencilState(const TDepthStencilDesc& stState)
 { 
+	E_GUARDS();
+
+	if (stState.bDepthTestEnabled)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+	//TODO: depth stencil
+	
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetDepthStencilState(TDepthStencilDesc& stState)
 { 
+	E_GUARDS();
+
+	GLboolean enabled;
+	glGetBooleanv(GL_DEPTH_TEST, &enabled);
+	stState.bDepthTestEnabled = enabled;
+	//TODO: depth stencil
+
+	E_GUARDS();
 	return S_OK;
 }
 

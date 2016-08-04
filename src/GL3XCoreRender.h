@@ -57,6 +57,7 @@ struct State
 	TBlendStateDesc blend;
 	bool alphaTest;
 	GLuint tex_ID_last_binded;
+	TDepthStencilDesc depth;
 };
 
 class GL3XCoreRender final : public ICoreRenderer

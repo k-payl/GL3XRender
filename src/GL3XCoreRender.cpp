@@ -463,7 +463,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	{
 		GLShader s;
 		s.Init(sh);
-		_shaders.insert(s);
+		_shaders.push_back(s);
 	}
 
 	E_GUARDS();
@@ -481,14 +481,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 
 DGLE_RESULT DGLE_API GL3XCoreRender::Finalize()
 {
-
-	while (_shaders.size() != 0)
-	{
-		auto it = _shaders.erase(_shaders.begin());
-		GLShader &s = const_cast<GLShader&>(*it);
-		s.Free();
-	}
+	for each (GLShader shd in _shaders)
+		shd.Free();
 	_shaders.clear();
+
 	FreeGL();
 	return S_OK;
 }

@@ -11,7 +11,7 @@ See "DGLE.h" for more details.
 #include "DGLE.h"
 #include "DGLE_CoreRenderer.h"
 #include "GL/glew.h"
-#include<set>
+#include<vector>
 
 using namespace DGLE;
 
@@ -61,7 +61,7 @@ struct State
 
 class GL3XCoreRender final : public ICoreRenderer
 {
-	std::set<GLShader> _shaders;
+	std::vector<GLShader> _shaders;
 	TMatrix4x4 MV;
 	TMatrix4x4 P;
 	GLint _iMaxAnisotropy;

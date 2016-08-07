@@ -141,33 +141,37 @@ void GLShader::Free()
 	E_GUARDS();
 }
 
-bool GLShader::bPositionIs2D() const { return p->bPositionIs2D; }
+bool GLShader::bPositionIsVec2() const { return p->bPositionIsVec2; }
+
+bool GLShader::hasUniform(string u) const
+{
+	auto it = find(p->uniforms.begin(), p->uniforms.end(), u);
+	return it != p->uniforms.end();
+}
+
 bool GLShader::bInputNormals() const { return (p->attribs & CGAP_NORM) != CGAP_NONE; }
 bool GLShader::bInputTextureCoords() const { return (p->attribs & CGAP_TEX) != CGAP_NONE; }
-bool GLShader::bUniformNM() const { return p->bUniformNM; }
-bool GLShader::bUniformnL() const { return p->bUniformnL; }
-bool GLShader::bUniformTexture0() const { return p->bUniformTexture; }
 
-bool GLShader::operator<(const GLShader & r) const
-{
-	auto i = hash();
-	auto j = r.hash();
-	return i < j;
-}
-
-bool GLShader::operator==(const GLShader & r) const
-{
-	return hash() == r.hash();
-}
-
-unsigned int GLShader::hash() const
-{
-	unsigned int y = 0;
-	y = (int)bInputNormals() +
-		((int)bInputTextureCoords() << 1) +
-		((int)bPositionIs2D() << 2);
-	return y;
-}
+//bool GLShader::operator<(const GLShader & r) const
+//{
+//	auto i = hash();
+//	auto j = r.hash();
+//	return i < j;
+//}
+//
+//bool GLShader::operator==(const GLShader & r) const
+//{
+//	return hash() == r.hash();
+//}
+//
+//unsigned int GLShader::hash() const
+//{
+//	unsigned int y = 0;
+//	y = (int)bInputNormals() +
+//		((int)bInputTextureCoords() << 1) +
+//		((int)bPositionIsVec2() << 2);
+//	return y;
+//}
 
 static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, GLenum& sourceFormat)
 {
@@ -829,10 +833,10 @@ GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_
 		[norm, tex, texture_binded, light_on, is2D](const GLShader& shd) -> bool
 	{
 		return
-			shd.bPositionIs2D() == is2D &&
+			shd.bPositionIsVec2() == is2D &&
 			//s.bUniformnL() == light_on &&
 			//s.bUniformNM() == light_on &&
-			shd.bUniformTexture0() == texture_binded &&
+			shd.hasUniform("texture0") == texture_binded &&
 			shd.bInputNormals() == (light_on && norm);
 	});
 	return &(*it);
@@ -878,19 +882,19 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 	b->ToggleAttribInVAO(GLGeometryBuffer::NORMALS_ATTRIBUTE, pShd->bInputNormals());
 	b->ToggleAttribInVAO(GLGeometryBuffer::TEXCOORDS_ATTRIBUTE, pShd->bInputTextureCoords());
 
-	if (!pShd->bPositionIs2D())
+	if (pShd->hasUniform("MVP"))
 	{
 		const TMatrix4x4 MVP = MV * P;
 		const GLuint MVP_ID = glGetUniformLocation(pShd->ID_Program(), "MVP");
 		glUniformMatrix4fv(MVP_ID, 1, GL_FALSE, &MVP._1D[0]);
 	}
-	if (pShd->bUniformNM())
+	if (pShd->hasUniform("NM"))
 	{
 		const TMatrix4x4 NM = MatrixTranspose(MatrixInverse(MV)); // Normal matrix = (MV^-1)^T
 		const GLuint NM_ID = glGetUniformLocation(pShd->ID_Program(), "NM");
 		glUniformMatrix4fv(NM_ID, 1, GL_FALSE, &NM._1D[0]);
 	}
-	if (pShd->bUniformnL())
+	if (pShd->hasUniform("nL"))
 	{
 		const TVector3 L = { 0.2f, 1.0f, 1.0f };
 		const TVector3 nL = L / L.Length();
@@ -898,13 +902,13 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		const GLuint nL_ID = glGetUniformLocation(pShd->ID_Program(), "nL");
 		glUniform3f(nL_ID, nL.x, nL.y, nL.z);
 	}
-	if (pShd->bUniformTexture0())
+	if (pShd->hasUniform("texture0"))
 	{
 		glBindTexture(GL_TEXTURE_2D, tex_ID_last_binded);
 		const GLuint tex_ID = glGetUniformLocation(pShd->ID_Program(), "texture0");
 		glUniform1i(tex_ID, 0);
 	}
-	if (pShd->bPositionIs2D())
+	if (pShd->hasUniform("screenWidth") && pShd->hasUniform("screenHeight"))
 	{
 		const GLuint width_ID = glGetUniformLocation(pShd->ID_Program(), "screenWidth");
 		const GLuint height_ID = glGetUniformLocation(pShd->ID_Program(), "screenHeight");

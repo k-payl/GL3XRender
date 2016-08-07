@@ -235,9 +235,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	_countof(f0) - 1,
 	CGAP_POS,
 	false,
-	false,
-	false,
-	false,
+	{"MVP"}
 },
 {
 	"Shader1",
@@ -247,9 +245,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	_countof(f1) - 1,
 	CGAP_POS_NORM,
 	false,
-	true,
-	true,
-	false,
+	{"MVP", "NM", "nL"}
 },
 {
 	"Shader2",
@@ -259,9 +255,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	_countof(f2) - 1,
 	CGAP_POS_NORM_TEX,
 	false,
-	true,
-	true,
-	true,
+	{"MVP", "NM", "nL", "texture0"}
 },
 {
 	"Shader3",
@@ -271,9 +265,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	_countof(f3) - 1,
 	CGAP_POS_TEX,
 	false,
-	false,
-	false,
-	true,
+	{"MVP", "texture0"}
 },
 {
 	"Shader4",
@@ -283,9 +275,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	_countof(f4) - 1,
 	CGAP_POS_TEX,
 	true,
-	false,
-	false,
-	true,
+	{"screenHeight", "screenWidth", "texture0"}
 },
 }};
 

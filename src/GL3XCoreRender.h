@@ -37,19 +37,19 @@ class GLShader
 
 public:
 
+	GLuint ID_Program() const { return programID; }
+	
 	void Init(const ShaderSrc& parent);
 	void Free();
-	GLuint ID_Program() const { return programID; }
-	bool bPositionIs2D() const;
+
+	bool bPositionIsVec2() const;
 	bool bInputNormals() const;
 	bool bInputTextureCoords() const;
-	bool bUniformNM() const;
-	bool bUniformnL() const;
-	bool bUniformTexture0() const;
+	bool hasUniform(std::string) const;
 
-	bool operator<(const GLShader& r) const;
-	bool operator==(const GLShader& r) const;
-	unsigned int hash() const;
+	//bool operator<(const GLShader& r) const;
+	//bool operator==(const GLShader& r) const;
+	//unsigned int hash() const;
 };
 
 struct State

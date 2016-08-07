@@ -12,6 +12,7 @@ struct ShaderSrc
 	const unsigned int linesFragmentShader;
 	const CORE_GEOMETRY_ATTRIBUTES_PRESENTED attribs;
 	const bool bPositionIsVec2;
+	const bool bAlphaTest;
 	const std::unordered_set<std::string> uniforms;
 };
 

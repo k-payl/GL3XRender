@@ -7,8 +7,10 @@
 //
 #include <string>
 #include <fstream>
+#include <iostream>
 #include <array>
 #include <set>
+#include <vector>
 using namespace std;
 
 #define DIR "..\\..\\src\\shaders\\"
@@ -27,35 +29,47 @@ const array<string, 9> head=
 	"}",
 } };
 
-#define SH string, string, string, bool, set<string>
-
-void _write_shader_text(ofstream& file, string shd_name, char var, int ind)
+void _write_shader_text(ofstream& file, vector<string> lines_vec, char var, int ind)
 {
-	string line;
-	ifstream shd(string(DIR) + shd_name);
 	file << "static const char *" << var << ind << "[] = ";
 	file << "{" << endl;
-	while (getline(shd, line))
+	for each (const string& s in lines_vec)
 	{
-		file << ' ' << '\"' << line << "\\n\"," << endl;
+		file << ' ' << '\"' << s << "\"," << endl;
 	}
 	file << ' ' << "\"\\n\"," << endl;
 	file << ' ' << "nullptr" << endl;
 	file << "};" << endl << endl;
-	shd.close();
 }
 
-void write_shader_text(ofstream& file, const tuple<SH>& shdr)
+void write_shader_text(ofstream& file, const vector<string>& v, const vector<string>& f)
 {	
 	static int ind = 0;
 
-	_write_shader_text(file, get<0>(shdr), 'v', ind);
-	_write_shader_text(file, get<1>(shdr), 'f', ind);
+	_write_shader_text(file, v, 'v', ind);
+	_write_shader_text(file, f, 'f', ind);
 
 	ind++;
 }
 
-void write_shader_fields(ofstream& file, const tuple<SH>& shdr)
+vector<string> get_vector(string in)
+{
+	vector<string> res;
+	string line;
+	ifstream shd(string(DIR) + in);
+	
+	while (getline(shd, line))
+	{
+		line.append("\\n");
+		res.push_back(line);
+	}
+
+	shd.close();
+	return res;
+}
+#define SH vector<string>, vector<string>, string, bool, bool, set<string>
+
+void write_shader_fields(ofstream& file, tuple<SH> shdr)
 {
 	int static ind = 0;
 
@@ -67,11 +81,12 @@ void write_shader_fields(ofstream& file, const tuple<SH>& shdr)
 	file << "\t_countof(f" << ind << ") - 1," << endl;
 	file << '\t' << get<2>(shdr) << ',' << endl;
 	file << (get<3>(shdr) ? "\ttrue," : "\tfalse,") << endl;
+	file << (get<4>(shdr) ? "\ttrue," : "\tfalse,") << endl;
 	file << "\t{";
-	for (auto it = get<4>(shdr).begin(); it != get<4>(shdr).end(); it++)
+	for (auto it = get<5>(shdr).begin(); it != get<5>(shdr).end(); it++)
 	{
 		file << "\"" <<*it << "\"";
-		if (it != (--get<4>(shdr).end())) file << ", ";
+		if (it != (--get<5>(shdr).end())) file << ", ";
 	}
 	file << "}" << endl;
 	file << "}," << endl;
@@ -80,23 +95,38 @@ void write_shader_fields(ofstream& file, const tuple<SH>& shdr)
 }
 
 int main()
-{	
-	const array<tuple<SH>, 5> shdrs =
+{		
+	vector<tuple<SH>> shdrs =
 	{ {
-		tuple<SH>{ "camera_p_vert.shader",		"camera_p_frag.shader",		"CGAP_POS",			false,	{"MVP"}},
-		tuple<SH>{ "camera_pn_vert.shader",		"camera_pn_frag.shader",	"CGAP_POS_NORM",	false,	{"MVP", "NM", "nL"}},
-		tuple<SH>{ "camera_pnt_vert.shader",	"camera_pnt_frag.shader",	"CGAP_POS_NORM_TEX",false,	{"MVP", "NM", "nL", "texture0"}},
-		tuple<SH>{ "camera_pt_vert.shader",		"camera_pt_frag.shader",	"CGAP_POS_TEX",		false,	{"MVP", "texture0"}},
-		tuple<SH>{ "camera_pt_2d_vert.shader",	"camera_pt_2d_frag.shader",	"CGAP_POS_TEX",		true,	{"screenWidth", "screenHeight", "texture0"}}
+		tuple<SH>{ get_vector("camera_p_vert.shader"),		get_vector("camera_p_frag.shader"),		"CGAP_POS",			false,	false, {"MVP"}},
+		tuple<SH>{ get_vector("camera_pn_vert.shader"),		get_vector("camera_pn_frag.shader"),	"CGAP_POS_NORM",	false,	false, {"MVP", "NM", "nL"}},
+		tuple<SH>{ get_vector("camera_pnt_vert.shader"),	get_vector("camera_pnt_frag.shader"),	"CGAP_POS_NORM_TEX",false,	false, {"MVP", "NM", "nL", "texture0"}},
+		tuple<SH>{ get_vector("camera_pt_vert.shader"),		get_vector("camera_pt_frag.shader"),	"CGAP_POS_TEX",		false,	false, {"MVP", "texture0"}},
+		tuple<SH>{ get_vector("camera_pt_2d_vert.shader"),	get_vector("camera_pt_2d_frag.shader"),	"CGAP_POS_TEX",		true,	false, {"screenWidth", "screenHeight", "texture0"}}
 	} };
 	
+	const int size = shdrs.size();
+	shdrs.resize(size * 2);
+	transform(shdrs.begin(), shdrs.begin() + size, shdrs.begin() + size, 
+		[](const tuple<SH>& s)
+		{
+			tuple<SH> copy(s);
 
+			get<4>(copy) = true;
+
+			vector<string>& vert_vec = get<1>(copy);
+			vert_vec.insert((vert_vec.begin() + 1), "#define ALPHA_TEST 1\\n");
+		
+			return copy;
+		});
+	
 	ofstream out_cpp(OUT_CPP);
 	for each (const string& l in head)
 		out_cpp << l << endl;
 	out_cpp << endl;
 	for each (const auto& v in shdrs)
-		write_shader_text(out_cpp, v);
+		write_shader_text(out_cpp, get<0>(v), get<1>(v));
+
 	out_cpp << "static std::vector<ShaderSrc> _shadersGenerated =" << endl;
 	out_cpp << "{{" << endl;
 	for each (const auto& v in shdrs)
@@ -109,5 +139,3 @@ int main()
 	out_cpp.close();
 
 }
-
-#undef SH

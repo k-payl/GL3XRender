@@ -30,6 +30,7 @@ enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
 
 class GLShader
 {
+public:
 	const ShaderSrc *p;
 	GLuint programID;
 	GLuint fragID;
@@ -46,6 +47,7 @@ public:
 	bool bInputNormals() const;
 	bool bInputTextureCoords() const;
 	bool hasUniform(std::string) const;
+	bool bAlphaTest() const;
 
 	//bool operator<(const GLShader& r) const;
 	//bool operator==(const GLShader& r) const;
@@ -69,7 +71,7 @@ class GL3XCoreRender final : public ICoreRenderer
 	GLuint tex_ID_last_binded;
 	bool alphaTest;
 
-	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on, bool is2d);
+	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on, bool is2d, bool alphaTest);
 
 public:
 	

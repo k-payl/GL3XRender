@@ -149,6 +149,11 @@ bool GLShader::hasUniform(string u) const
 	return it != p->uniforms.end();
 }
 
+bool GLShader::bAlphaTest() const
+{
+	return p->bAlphaTest;
+}
+
 bool GLShader::bInputNormals() const { return (p->attribs & CGAP_NORM) != CGAP_NONE; }
 bool GLShader::bInputTextureCoords() const { return (p->attribs & CGAP_TEX) != CGAP_NONE; }
 
@@ -178,7 +183,7 @@ static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, G
 	switch (eDataFormat)
 	{
 		case TDF_RGB8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_RGB;  break;
-		case TDF_RGBA8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_RGBA; break;
+		case TDF_RGBA8:				VRAMFormat = GL_RGBA8;	sourceFormat = GL_RGBA; break;
 		case TDF_ALPHA8:			VRAMFormat = GL_R8;		sourceFormat = GL_RED; break;
 		case TDF_BGR8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_BGR; break;
 		case TDF_BGRA8:				VRAMFormat = GL_RGBA8;	sourceFormat = GL_BGRA; break;
@@ -436,7 +441,7 @@ public:
 //         Render       //
 //////////////////////////
 
-GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore)
+GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : alphaTest(false), tex_ID_last_binded(0)
 {
 	_core = pCore;
 }
@@ -824,21 +829,21 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetMatrix(TMatrix4x4& stMatrix, E_MATRIX_TY
 	return S_OK;
 }
 
-GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_attributes, bool texture_binded, bool light_on, bool is2D)
+GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_attributes, bool texture_binded, bool light_on, bool is2D, bool alphaTest)
 {
 	bool norm = (model_attributes & CGAP_NORM) != CGAP_NONE;
 	bool tex = (model_attributes & CGAP_TEX) != CGAP_NONE;
 	
 	auto it = std::find_if(_shaders.begin(), _shaders.end(),
-		[norm, tex, texture_binded, light_on, is2D](const GLShader& shd) -> bool
+		[norm, tex, texture_binded, light_on, is2D, alphaTest](const GLShader& shd) -> bool
 	{
 		return
 			shd.bPositionIsVec2() == is2D &&
-			//s.bUniformnL() == light_on &&
-			//s.bUniformNM() == light_on &&
-			shd.hasUniform("texture0") == texture_binded &&
+			shd.hasUniform("texture0") == (texture_binded && tex) &&
+			shd.bAlphaTest() == alphaTest &&
 			shd.bInputNormals() == (light_on && norm);
 	});
+
 	return &(*it);
 }
 
@@ -873,7 +878,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 	const bool texture_binded = tex_ID_last_binded != 0;
 	const bool light_on = true;
 	
-	const GLShader* pShd = chooseShader(b->GetAttributes(), texture_binded, light_on, b->Is2dPosition());
+	const GLShader* pShd = chooseShader(b->GetAttributes(), texture_binded, light_on, b->Is2dPosition(), alphaTest);
 
 	glUseProgram(pShd->ID_Program());
 

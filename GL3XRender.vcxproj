@@ -187,6 +187,8 @@
     <None Include="src\shaders\camera_pt_2d_vert.shader" />
     <None Include="src\shaders\camera_pt_frag.shader" />
     <None Include="src\shaders\camera_pt_vert.shader" />
+    <None Include="src\shaders\camera_p_2d_frag.shader" />
+    <None Include="src\shaders\camera_p_2d_vert.shader" />
     <None Include="src\shaders\camera_p_frag.shader" />
     <None Include="src\shaders\camera_p_vert.shader" />
   </ItemGroup>

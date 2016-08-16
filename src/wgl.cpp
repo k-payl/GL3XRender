@@ -15,6 +15,7 @@ See "DGLE.h" for more details.
 #include "DGLE.h"
 #include <GL\glew.h>
 #include <GL\wglew.h>
+#include <assert.h>
 //#include <strsafe.h> // for StringCchPrintf
 using namespace DGLE;
 
@@ -49,6 +50,8 @@ static HGLRC _hRC;
 //	LocalFree(lpMsgBuf);
 //	LocalFree(lpDisplayBuf);
 //}
+
+void E_GUARDS();
 
 static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
 {
@@ -221,7 +224,9 @@ bool CreateGL(TWindowHandle hwnd, IEngineCore* pCore, const TEngineWindow& stWin
 
 void MakeCurrent()
 {
-	wglMakeCurrent(_hdc, _hRC);
+	if (wglGetCurrentContext() != _hRC)
+		if (!wglMakeCurrent(_hdc, _hRC))
+			assert(false);
 }
 
 void FreeGL()

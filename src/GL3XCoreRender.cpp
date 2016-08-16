@@ -508,7 +508,9 @@ DGLE_RESULT DGLE_API GL3XCoreRender::AdjustMode(TEngineWindow& stNewWin)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::MakeCurrent()
 { 
+	E_GUARDS();
 	::MakeCurrent();
+	E_GUARDS();
 	return S_OK;
 }
 

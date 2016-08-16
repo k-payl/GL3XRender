@@ -11,6 +11,7 @@ See "DGLE.h" for more details.
 #include <assert.h>
 #include <algorithm>
 #include <memory>
+#include <map>
 using namespace std;
 
 #define LOG_INFO(txt) LogToDGLE((string("GL3XCoreRender: ") + txt).c_str(), LT_INFO, __FILE__, __LINE__)
@@ -41,6 +42,7 @@ extern void SwapBuffer();
 static IEngineCore *_core;
 
 #include "shaderSources.h"
+
 
 #pragma warning(push)
 #pragma warning(disable:4715)
@@ -154,8 +156,8 @@ bool GLShader::bAlphaTest() const
 	return p->bAlphaTest;
 }
 
-bool GLShader::bInputNormals() const { return (p->attribs & CGAP_NORM) != CGAP_NONE; }
-bool GLShader::bInputTextureCoords() const { return (p->attribs & CGAP_TEX) != CGAP_NONE; }
+bool GLShader::bInputNormals() const { return (p->attribs & NORM) > 0; }
+bool GLShader::bInputTextureCoords() const { return (p->attribs & TEX_COORD) > 0; }
 
 //bool GLShader::operator<(const GLShader & r) const
 //{
@@ -213,21 +215,27 @@ class GLGeometryBuffer final : public ICoreGeometryBuffer
 	E_CORE_RENDERER_BUFFER_TYPE _eBufferType;
 	E_CORE_RENDERER_DRAW_MODE _eDrawMode;
 	GL3XCoreRender * const _pRnd;
-	CORE_GEOMETRY_ATTRIBUTES_PRESENTED _attribs_presented;
-	int activated_attributes[3];
+	INPUT_ATTRIBUTE _attribs_presented;
+	GLuint activated_attributes[5];
 	bool _b2dPosition;
 
 public:
-
-	const static int POSITION_ATTRIBUTE = 0;
-	const static int NORMALS_ATTRIBUTE = 1;
-	const static int TEXCOORDS_ATTRIBUTE = 2;
-
+	
+	inline GLuint input_attrib_to_uint(INPUT_ATTRIBUTE attrib)
+	{
+		const static map<INPUT_ATTRIBUTE, GLuint> enum_to_ind =
+		{
+			{ POS, 0 },
+			{ NORM, 1 },
+			{ TEX_COORD, 2 }
+		};
+		return enum_to_ind.at(attrib);
+	}
 	inline GLuint VAO_ID() { return _vao; }
 	inline bool IndexDrawing() { return _ibo > 0; }
 	inline GLsizei VertexCount() { return _vertexCount; }
 	inline GLsizei IndexCount() { return _indexCount; }
-	inline CORE_GEOMETRY_ATTRIBUTES_PRESENTED GetAttributes() { return _attribs_presented; }
+	inline INPUT_ATTRIBUTE GetAttributes() { return _attribs_presented; }
 	inline bool Is2dPosition() { return _b2dPosition; }
 	inline GLenum GLDrawMode()
 	{
@@ -243,18 +251,21 @@ public:
 		}
 		return mode;
 	}
-	inline void ToggleAttribInVAO(int attrib_ind, bool value)
+	inline void ToggleAttribInVAO(INPUT_ATTRIBUTE attrib, bool value)
 	{
 		E_GUARDS();
-		if (value && !activated_attributes[attrib_ind])
+
+		const GLuint i = input_attrib_to_uint(attrib);
+
+		if (value && !activated_attributes[i])
 		{
-			activated_attributes[attrib_ind] = true;
-			glEnableVertexAttribArray(attrib_ind);
+			activated_attributes[i] = true;
+			glEnableVertexAttribArray(i);
 		}
-		else if (!value && activated_attributes[attrib_ind])
+		else if (!value && activated_attributes[i])
 		{
-			activated_attributes[attrib_ind] = false;
-			glDisableVertexAttribArray(attrib_ind);
+			activated_attributes[i] = false;
+			glDisableVertexAttribArray(i);
 		}
 		E_GUARDS();
 	}
@@ -272,7 +283,7 @@ public:
 	}
 
 	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd) :
-		_bAlreadyInitalized(false), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(CGAP_NONE), activated_attributes{0}, _b2dPosition(false)
+		_bAlreadyInitalized(false), _vertexCount(0), _indexCount(0), _vao(0), _vbo(0), _ibo(0), _eBufferType(eType), _pRnd(pRnd), _attribs_presented(NONE), activated_attributes{0}, _b2dPosition(false)
 	{		
 		E_GUARDS();
 		glGenVertexArrays(1, &_vao);
@@ -316,23 +327,20 @@ public:
 			const GLenum glBufferType = _eBufferType == CRBT_HARDWARE_STATIC ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW;
 			glBufferData(GL_ARRAY_BUFFER, vertex_data_bytes, reinterpret_cast<const void*>(stDrawDesc.pData), glBufferType); // send data to VRAM
 
-			glVertexAttribPointer(0, _b2dPosition ? 2 : 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiVertexStride, reinterpret_cast<void*>(0));
-			ToggleAttribInVAO(POSITION_ATTRIBUTE, true);
-			_attribs_presented = static_cast<CORE_GEOMETRY_ATTRIBUTES_PRESENTED>(_attribs_presented | CGAP_POS);
+			glVertexAttribPointer(input_attrib_to_uint(POS), _b2dPosition ? 2 : 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiVertexStride, reinterpret_cast<void*>(0));
+			_attribs_presented = POS;
 
 			if (stDrawDesc.uiNormalOffset != -1)
 			{
-				glVertexAttribPointer(NORMALS_ATTRIBUTE, 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiNormalStride, reinterpret_cast<void*>(stDrawDesc.uiNormalOffset));
-				ToggleAttribInVAO(NORMALS_ATTRIBUTE, true);
-				_attribs_presented = static_cast<CORE_GEOMETRY_ATTRIBUTES_PRESENTED>(_attribs_presented | CGAP_NORM);
+				glVertexAttribPointer(input_attrib_to_uint(NORM), 3, GL_FLOAT, GL_FALSE, stDrawDesc.uiNormalStride, reinterpret_cast<void*>(stDrawDesc.uiNormalOffset));
+				_attribs_presented = _attribs_presented | NORM;
 			}
 			if (stDrawDesc.uiTextureVertexOffset != -1)
 			{
-				glVertexAttribPointer(TEXCOORDS_ATTRIBUTE, 2, GL_FLOAT, GL_FALSE, stDrawDesc.uiTextureVertexStride, reinterpret_cast<void*>(stDrawDesc.uiTextureVertexOffset));
-				ToggleAttribInVAO(TEXCOORDS_ATTRIBUTE, true);
-				_attribs_presented = static_cast<CORE_GEOMETRY_ATTRIBUTES_PRESENTED>(_attribs_presented | CGAP_TEX);
+				glVertexAttribPointer(input_attrib_to_uint(TEX_COORD), 2, GL_FLOAT, GL_FALSE, stDrawDesc.uiTextureVertexStride, reinterpret_cast<void*>(stDrawDesc.uiTextureVertexOffset));
+				_attribs_presented = _attribs_presented | TEX_COORD;
 			}
-			assert(_attribs_presented & CGAP_POS);
+			assert(_attribs_presented & POS);
 			// TODO: implement tangent and binormal
 
 			if (indexes_data_bytes > 0)
@@ -829,10 +837,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetMatrix(TMatrix4x4& stMatrix, E_MATRIX_TY
 	return S_OK;
 }
 
-GLShader* GL3XCoreRender::chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED model_attributes, bool texture_binded, bool light_on, bool is2D, bool alphaTest)
+GLShader* GL3XCoreRender::chooseShader(INPUT_ATTRIBUTE attrib, bool texture_binded, bool light_on, bool is2D, bool alphaTest)
 {
-	bool norm = (model_attributes & CGAP_NORM) != CGAP_NONE;
-	bool tex = (model_attributes & CGAP_TEX) != CGAP_NONE;
+	bool norm = (attrib & NORM) > 0;
+	bool tex = (attrib & TEX_COORD) > 0;
 	
 	auto it = std::find_if(_shaders.begin(), _shaders.end(),
 		[norm, tex, texture_binded, light_on, is2D, alphaTest](const GLShader& shd) -> bool
@@ -884,8 +892,9 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 
 	glBindVertexArray(b->VAO_ID());
 
-	b->ToggleAttribInVAO(GLGeometryBuffer::NORMALS_ATTRIBUTE, pShd->bInputNormals());
-	b->ToggleAttribInVAO(GLGeometryBuffer::TEXCOORDS_ATTRIBUTE, pShd->bInputTextureCoords());
+	b->ToggleAttribInVAO(POS, true);
+	b->ToggleAttribInVAO(NORM, pShd->bInputNormals());
+	b->ToggleAttribInVAO(TEX_COORD, pShd->bInputTextureCoords());
 
 	if (pShd->hasUniform("MVP"))
 	{

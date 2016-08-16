@@ -17,20 +17,24 @@ using namespace DGLE;
 
 struct ShaderSrc;
 
-enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED
+enum INPUT_ATTRIBUTE
 {
-	CGAP_NONE = 0b00000000,
-	CGAP_POS_NORM = 0b00000011,
-	CGAP_POS_TEX = 0b00000101,
-	CGAP_POS_NORM_TEX = 0b00000111,
-	CGAP_POS = 0b00000001,
-	CGAP_NORM = 0b00000010,
-	CGAP_TEX = 0b00000100,
+	NONE = 0,
+	POS = 1,
+	NORM = 2,
+	TEX_COORD = 4
 };
+inline INPUT_ATTRIBUTE operator|(INPUT_ATTRIBUTE a, INPUT_ATTRIBUTE b)
+{
+	return static_cast<INPUT_ATTRIBUTE>(static_cast<int>(a) | static_cast<int>(b));
+}
+inline INPUT_ATTRIBUTE operator&(INPUT_ATTRIBUTE a, INPUT_ATTRIBUTE b)
+{
+	return static_cast<INPUT_ATTRIBUTE>(static_cast<int>(a) & static_cast<int>(b));
+}
 
 class GLShader
 {
-public:
 	const ShaderSrc *p;
 	GLuint programID;
 	GLuint fragID;
@@ -71,7 +75,7 @@ class GL3XCoreRender final : public ICoreRenderer
 	GLuint tex_ID_last_binded;
 	bool alphaTest;
 
-	GLShader* chooseShader(CORE_GEOMETRY_ATTRIBUTES_PRESENTED attributes, bool texture_binded, bool light_on, bool is2d, bool alphaTest);
+	GLShader* chooseShader(INPUT_ATTRIBUTE attributes, bool texture_binded, bool light_on, bool is2d, bool alphaTest);
 
 public:
 	

@@ -415,7 +415,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f0),
 	_countof(v0) - 1,
 	_countof(f0) - 1,
-	CGAP_POS,
+	POS,
 	false,
 	false,
 	{"MVP"}
@@ -426,7 +426,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f1),
 	_countof(v1) - 1,
 	_countof(f1) - 1,
-	CGAP_POS_NORM,
+	POS | NORM,
 	false,
 	false,
 	{"MVP", "NM", "nL"}
@@ -437,7 +437,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f2),
 	_countof(v2) - 1,
 	_countof(f2) - 1,
-	CGAP_POS_NORM_TEX,
+	POS | NORM | TEX_COORD,
 	false,
 	false,
 	{"MVP", "NM", "nL", "texture0"}
@@ -448,7 +448,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f3),
 	_countof(v3) - 1,
 	_countof(f3) - 1,
-	CGAP_POS_TEX,
+	POS & TEX_COORD,
 	false,
 	false,
 	{"MVP", "texture0"}
@@ -459,7 +459,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f4),
 	_countof(v4) - 1,
 	_countof(f4) - 1,
-	CGAP_POS,
+	POS,
 	true,
 	false,
 	{"screenHeight", "screenWidth"}
@@ -470,7 +470,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f5),
 	_countof(v5) - 1,
 	_countof(f5) - 1,
-	CGAP_POS_TEX,
+	POS | TEX_COORD,
 	true,
 	false,
 	{"screenHeight", "screenWidth", "texture0"}
@@ -481,7 +481,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f6),
 	_countof(v6) - 1,
 	_countof(f6) - 1,
-	CGAP_POS_NORM_TEX,
+	POS | NORM | TEX_COORD,
 	false,
 	true,
 	{"MVP", "NM", "nL", "texture0"}
@@ -492,7 +492,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f7),
 	_countof(v7) - 1,
 	_countof(f7) - 1,
-	CGAP_POS_TEX,
+	POS & TEX_COORD,
 	false,
 	true,
 	{"MVP", "texture0"}
@@ -503,7 +503,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f8),
 	_countof(v8) - 1,
 	_countof(f8) - 1,
-	CGAP_POS_TEX,
+	POS & TEX_COORD,
 	true,
 	true,
 	{"screenHeight", "screenWidth", "texture0"}

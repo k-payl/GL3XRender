@@ -1,7 +1,7 @@
 #include<vector>
 #include <unordered_set>
 
-enum CORE_GEOMETRY_ATTRIBUTES_PRESENTED;
+enum INPUT_ATTRIBUTE;
 
 struct ShaderSrc
 {
@@ -10,7 +10,7 @@ struct ShaderSrc
 	const char **ppTxtFragment;
 	const unsigned int linesVertexShader;
 	const unsigned int linesFragmentShader;
-	const CORE_GEOMETRY_ATTRIBUTES_PRESENTED attribs;
+	const INPUT_ATTRIBUTE attribs;
 	const bool bPositionIsVec2;
 	const bool bAlphaTest;
 	const std::unordered_set<std::string> uniforms;

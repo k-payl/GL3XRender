@@ -2,13 +2,10 @@
 
 layout(location = 0) in vec2 Position;
 
-uniform uint screenWidth;
-uniform uint screenHeight;
+uniform mat4 MVP;
 
 
 void main()
 {
-	float x = (Position.x / screenWidth) * 2 - 1;
-	float y = - (Position.y / screenHeight) * 2 + 1;
-	gl_Position = vec4(x, y, 0.0, 1.0);
+	gl_Position = MVP * vec4(Position.x, Position.y, 0.0, 1.0);
 }

@@ -98,12 +98,12 @@ int main()
 {		
 	vector<tuple<SH>> shdrs =
 	{ {
-		tuple<SH>{ get_vector("camera_p_vert.shader"),		get_vector("camera_p_frag.shader"),		"CGAP_POS",			false,	false,	{"MVP"}},
-		tuple<SH>{ get_vector("camera_pn_vert.shader"),		get_vector("camera_pn_frag.shader"),	"CGAP_POS_NORM",	false,	false,	{"MVP", "NM", "nL"}},
-		tuple<SH>{ get_vector("camera_pnt_vert.shader"),	get_vector("camera_pnt_frag.shader"),	"CGAP_POS_NORM_TEX",false,	true,	{"MVP", "NM", "nL", "texture0"}},
-		tuple<SH>{ get_vector("camera_pt_vert.shader"),		get_vector("camera_pt_frag.shader"),	"CGAP_POS_TEX",		false,	true,	{"MVP", "texture0"}},
-		tuple<SH>{ get_vector("camera_p_2d_vert.shader"),	get_vector("camera_p_2d_frag.shader"),	"CGAP_POS",			true,	false,	{"screenWidth", "screenHeight"}},
-		tuple<SH>{ get_vector("camera_pt_2d_vert.shader"),	get_vector("camera_pt_2d_frag.shader"),	"CGAP_POS_TEX",		true,	true,	{"screenWidth", "screenHeight", "texture0"}}
+		tuple<SH>{ get_vector("camera_p_vert.shader"),		get_vector("camera_p_frag.shader"),		"POS",						false,	false,	{"MVP"}},
+		tuple<SH>{ get_vector("camera_pn_vert.shader"),		get_vector("camera_pn_frag.shader"),	"POS | NORM",				false,	false,	{"MVP", "NM", "nL"}},
+		tuple<SH>{ get_vector("camera_pnt_vert.shader"),	get_vector("camera_pnt_frag.shader"),	"POS | NORM | TEX_COORD",	false,	true,	{"MVP", "NM", "nL", "texture0"}},
+		tuple<SH>{ get_vector("camera_pt_vert.shader"),		get_vector("camera_pt_frag.shader"),	"POS | TEX_COORD",			false,	true,	{"MVP", "texture0"}},
+		tuple<SH>{ get_vector("camera_p_2d_vert.shader"),	get_vector("camera_p_2d_frag.shader"),	"POS",						true,	false,	{"MVP"}},
+		tuple<SH>{ get_vector("camera_pt_2d_vert.shader"),	get_vector("camera_pt_2d_frag.shader"),	"POS | TEX_COORD",			true,	true,	{"MVP", "texture0"}}
 	} };
 	
 	vector<tuple<SH>> shdrs_at(shdrs.size());

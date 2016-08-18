@@ -449,7 +449,7 @@ public:
 //         Render       //
 //////////////////////////
 
-GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : alphaTest(false), tex_ID_last_binded(0)
+GL3XCoreRender::GL3XCoreRender(IEngineCore *pCore) : tex_ID_last_binded(0), alphaTest(false)
 {
 	_core = pCore;
 }
@@ -823,7 +823,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::SetMatrix(const TMatrix4x4& stMatrix, E_MAT
 	{
 		case MT_MODELVIEW: MV = stMatrix; break;
 		case MT_PROJECTION: P = stMatrix; break;
-		case MT_TEXTURE: /* TODO: */ break;
+		case MT_TEXTURE: T = stMatrix; break;
 	}
 	return S_OK;
 }
@@ -834,7 +834,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetMatrix(TMatrix4x4& stMatrix, E_MATRIX_TY
 	{
 		case MT_MODELVIEW: stMatrix = MV; break;
 		case MT_PROJECTION: stMatrix = P; break;
-		case MT_TEXTURE: /* TODO: */ break;
+		case MT_TEXTURE: stMatrix = T; break;
 	}
 	return S_OK;
 }
@@ -898,6 +898,11 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 	b->ToggleAttribInVAO(NORM, pShd->bInputNormals());
 	b->ToggleAttribInVAO(TEX_COORD, pShd->bInputTextureCoords());
 
+	if (pShd->hasUniform("MV"))
+	{
+		const GLuint MV_ID = glGetUniformLocation(pShd->ID_Program(), "MV");
+		glUniformMatrix4fv(MV_ID, 1, GL_FALSE, &MV._1D[0]);
+	}
 	if (pShd->hasUniform("MVP"))
 	{
 		const TMatrix4x4 MVP = MV * P;
@@ -924,15 +929,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		const GLuint tex_ID = glGetUniformLocation(pShd->ID_Program(), "texture0");
 		glUniform1i(tex_ID, 0);
 	}
-	if (pShd->hasUniform("screenWidth") && pShd->hasUniform("screenHeight"))
-	{
-		const GLuint width_ID = glGetUniformLocation(pShd->ID_Program(), "screenWidth");
-		const GLuint height_ID = glGetUniformLocation(pShd->ID_Program(), "screenHeight");
-		uint x, y, w, h;
-		GetViewport(x, y, w, h);
-		glUniform1ui(width_ID, w);
-		glUniform1ui(height_ID, h);
-	}
+
 
 	if (b->IndexDrawing())
 		glDrawElements(b->GLDrawMode(), b->IndexCount(), ((b->IndexCount() > 65535) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT), nullptr);

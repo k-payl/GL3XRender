@@ -72,6 +72,7 @@ class GL3XCoreRender final : public ICoreRenderer
 	std::stack<State> _states;
 	TMatrix4x4 MV;
 	TMatrix4x4 P;	
+	TMatrix4x4 T;	
 	GLuint tex_ID_last_binded;
 	bool alphaTest;
 

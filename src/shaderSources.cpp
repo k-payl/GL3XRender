@@ -182,15 +182,12 @@ static const char *v4[] = {
  "\n",
  "layout(location = 0) in vec2 Position;\n",
  "\n",
- "uniform uint screenWidth;\n",
- "uniform uint screenHeight;\n",
+ "uniform mat4 MVP;\n",
  "\n",
  "\n",
  "void main()\n",
  "{\n",
- "	float x = (Position.x / screenWidth) * 2 - 1;\n",
- "	float y = - (Position.y / screenHeight) * 2 + 1;\n",
- "	gl_Position = vec4(x, y, 0.0, 1.0);\n",
+ "	gl_Position = MVP * vec4(Position.x, Position.y, 0.0, 1.0);\n",
  "}\n",
  "\n",
  nullptr
@@ -216,8 +213,7 @@ static const char *v5[] = {
  "layout(location = 0) in vec2 Position;\n",
  "layout(location = 2) in vec2 TexCoord;\n",
  "\n",
- "uniform uint screenWidth;\n",
- "uniform uint screenHeight;\n",
+ "uniform mat4 MVP;\n",
  "\n",
  "smooth out vec2 UV;\n",
  "\n",
@@ -225,9 +221,7 @@ static const char *v5[] = {
  "void main()\n",
  "{\n",
  "	UV = TexCoord;\n",
- "	float x = (Position.x / screenWidth) * 2 - 1;\n",
- "	float y = - (Position.y / screenHeight) * 2 + 1;\n",
- "	gl_Position = vec4(x, y, 0.0, 1.0);\n",
+ "	gl_Position = MVP * vec4(Position.x, Position.y, 0.0, 1.0);\n",
  "}\n",
  "\n",
  nullptr
@@ -364,8 +358,7 @@ static const char *v8[] = {
  "layout(location = 0) in vec2 Position;\n",
  "layout(location = 2) in vec2 TexCoord;\n",
  "\n",
- "uniform uint screenWidth;\n",
- "uniform uint screenHeight;\n",
+ "uniform mat4 MVP;\n",
  "\n",
  "smooth out vec2 UV;\n",
  "\n",
@@ -373,9 +366,7 @@ static const char *v8[] = {
  "void main()\n",
  "{\n",
  "	UV = TexCoord;\n",
- "	float x = (Position.x / screenWidth) * 2 - 1;\n",
- "	float y = - (Position.y / screenHeight) * 2 + 1;\n",
- "	gl_Position = vec4(x, y, 0.0, 1.0);\n",
+ "	gl_Position = MVP * vec4(Position.x, Position.y, 0.0, 1.0);\n",
  "}\n",
  "\n",
  nullptr
@@ -448,7 +439,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f3),
 	_countof(v3) - 1,
 	_countof(f3) - 1,
-	POS & TEX_COORD,
+	POS | TEX_COORD,
 	false,
 	false,
 	{"MVP", "texture0"}
@@ -462,7 +453,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	POS,
 	true,
 	false,
-	{"screenHeight", "screenWidth"}
+	{"MVP"}
 },
 {
 	"Shader5",
@@ -473,7 +464,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	POS | TEX_COORD,
 	true,
 	false,
-	{"screenHeight", "screenWidth", "texture0"}
+	{"MVP", "texture0"}
 },
 {
 	"Shader6",
@@ -492,7 +483,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f7),
 	_countof(v7) - 1,
 	_countof(f7) - 1,
-	POS & TEX_COORD,
+	POS | TEX_COORD,
 	false,
 	true,
 	{"MVP", "texture0"}
@@ -503,10 +494,10 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	exact_ptrptr(f8),
 	_countof(v8) - 1,
 	_countof(f8) - 1,
-	POS & TEX_COORD,
+	POS | TEX_COORD,
 	true,
 	true,
-	{"screenHeight", "screenWidth", "texture0"}
+	{"MVP", "texture0"}
 },
 }};
 

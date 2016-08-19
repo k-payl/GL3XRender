@@ -485,8 +485,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::Initialize(TCrRndrInitResults& stResults, T
 	if (stWin.eMultisampling != MM_NONE) glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST); E_GUARDS();
 	glClearDepth(1.0);	
-	/*glActiveTexture(GL_TEXTURE0 + 0); E_GUARDS();
-	glAlphaFunc(GL_GREATER, 0);*/ E_GUARDS();
+	
 	E_GUARDS();
 	return S_OK;
 }
@@ -779,8 +778,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 	state.alphaTest = alphaTest;
 
 	glGetBooleanv(GL_DEPTH_TEST, &enabled);
-	state.depth.bDepthTestEnabled = enabled;
+	state.depth.bDepthTestEnabled = enabled > 0;
 	//TODO: depth stencil
+
+	state.color = _color;
 
 	_states.push(state);
 
@@ -811,6 +812,8 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 	else
 		glDisable(GL_DEPTH_TEST);
 	//TODO: depth stencil
+
+	_color = state.color;
 
 	E_GUARDS();
 	
@@ -929,6 +932,11 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 		const GLuint tex_ID = glGetUniformLocation(pShd->ID_Program(), "texture0");
 		glUniform1i(tex_ID, 0);
 	}
+	if (pShd->hasUniform("main_color"))
+	{
+		const GLuint main_color_ID = glGetUniformLocation(pShd->ID_Program(), "main_color");
+		glUniform4f(main_color_ID, _color.r, _color.g, _color.b, _color.a);
+	}
 
 
 	if (b->IndexDrawing())
@@ -945,7 +953,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::DrawBuffer(ICoreGeometryBuffer* pBuffer)
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetColor(const TColor4& stColor)
 {
-	//glColor4f(stColor.r, stColor.g, stColor.b, stColor.a); //1281
+	_color = stColor;
 	return S_OK;
 }
 
@@ -1008,7 +1016,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetBlendState(TBlendStateDesc& stState)
 	stState.eDstFactor = BlendFactor_GL_2_DGLE(blendDst);
 	GLboolean enabled;
 	glGetBooleanv(GL_BLEND, &enabled);
-	stState.bEnabled = enabled;
+	stState.bEnabled = enabled > 0;
 
 	E_GUARDS();
 	return S_OK;
@@ -1034,7 +1042,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetDepthStencilState(TDepthStencilDesc& stS
 
 	GLboolean enabled;
 	glGetBooleanv(GL_DEPTH_TEST, &enabled);
-	stState.bDepthTestEnabled = enabled;
+	stState.bDepthTestEnabled = enabled > 0;
 	//TODO: depth stencil
 
 	E_GUARDS();

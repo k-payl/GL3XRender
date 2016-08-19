@@ -60,10 +60,13 @@ public:
 
 struct State
 {
+	State() : alphaTest(false), tex_ID_last_binded(0), color(1, 1, 1, 1){}
+
 	TBlendStateDesc blend;
 	bool alphaTest;
 	GLuint tex_ID_last_binded;
 	TDepthStencilDesc depth;
+	TColor4 color;
 };
 
 class GL3XCoreRender final : public ICoreRenderer
@@ -75,6 +78,7 @@ class GL3XCoreRender final : public ICoreRenderer
 	TMatrix4x4 T;	
 	GLuint tex_ID_last_binded;
 	bool alphaTest;
+	TColor4 _color;
 
 	GLShader* chooseShader(INPUT_ATTRIBUTE attributes, bool texture_binded, bool light_on, bool is2d, bool alphaTest);
 

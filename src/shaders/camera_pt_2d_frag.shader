@@ -2,6 +2,7 @@
 
 smooth in vec2 UV;
 
+uniform vec4 main_color;
 uniform sampler2D texture0;
 
 out vec4 color;
@@ -16,5 +17,5 @@ void main()
 		discard;
 #endif
 
-	color = tex;
+	color = tex * main_color;
 }

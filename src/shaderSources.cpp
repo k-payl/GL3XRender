@@ -27,12 +27,14 @@ static const char *v0[] = {
 static const char *f0[] = {
  "#version 330\n",
  "\n",
+ "uniform vec4 main_color;\n",
+ "\n",
  "out vec4 color;\n",
  "\n",
  "\n",
  "void main()\n",
  "{\n",
- "	color = vec4(1, 1, 1, 1);\n",
+ "	color = main_color;\n",
  "}\n",
  "\n",
  nullptr
@@ -196,12 +198,14 @@ static const char *v4[] = {
 static const char *f4[] = {
  "#version 330\n",
  "\n",
+ "uniform vec4 main_color;\n",
+ "\n",
  "out vec4 color;\n",
  "\n",
  "\n",
  "void main()\n",
  "{\n",
- "	color = vec4(1, 1, 1, 1);\n",
+ "	color = main_color;\n",
  "}\n",
  "\n",
  nullptr
@@ -232,6 +236,7 @@ static const char *f5[] = {
  "\n",
  "smooth in vec2 UV;\n",
  "\n",
+ "uniform vec4 main_color;\n",
  "uniform sampler2D texture0;\n",
  "\n",
  "out vec4 color;\n",
@@ -246,7 +251,7 @@ static const char *f5[] = {
  "		discard;\n",
  "#endif\n",
  "\n",
- "	color = tex;\n",
+ "	color = tex * main_color;\n",
  "}\n",
  "\n",
  nullptr
@@ -378,6 +383,7 @@ static const char *f8[] = {
  "\n",
  "smooth in vec2 UV;\n",
  "\n",
+ "uniform vec4 main_color;\n",
  "uniform sampler2D texture0;\n",
  "\n",
  "out vec4 color;\n",
@@ -392,7 +398,7 @@ static const char *f8[] = {
  "		discard;\n",
  "#endif\n",
  "\n",
- "	color = tex;\n",
+ "	color = tex * main_color;\n",
  "}\n",
  "\n",
  nullptr
@@ -409,7 +415,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	POS,
 	false,
 	false,
-	{"MVP"}
+	{"MVP", "main_color"}
 },
 {
 	"Shader1",
@@ -453,7 +459,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	POS,
 	true,
 	false,
-	{"MVP"}
+	{"MVP", "main_color"}
 },
 {
 	"Shader5",
@@ -464,7 +470,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	POS | TEX_COORD,
 	true,
 	false,
-	{"MVP", "texture0"}
+	{"MVP", "main_color", "texture0"}
 },
 {
 	"Shader6",
@@ -497,7 +503,7 @@ static std::vector<ShaderSrc> _shadersGenerated =
 	POS | TEX_COORD,
 	true,
 	true,
-	{"MVP", "texture0"}
+	{"MVP", "main_color", "texture0"}
 },
 }};
 

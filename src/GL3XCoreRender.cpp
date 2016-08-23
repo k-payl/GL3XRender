@@ -575,10 +575,19 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetScissorRectangle(uint& x, uint& y, uint&
 	return S_OK;
 }
 
+void clamp(float& val, float mi, float ma)
+{
+	val = max(mi, val);
+	val = min(ma, val);
+}
+
 DGLE_RESULT DGLE_API GL3XCoreRender::SetLineWidth(float fWidth)
 { 
 	E_GUARDS();
-	glLineWidth(fWidth);
+
+	clamp(fWidth, 0.0f, 1.0f); // INVALID_OPERATION for fWidth > 1 in 3.2
+	//glLineWidth(fWidth);
+
 	E_GUARDS();
 	return S_OK;
 }
@@ -586,9 +595,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::SetLineWidth(float fWidth)
 DGLE_RESULT DGLE_API GL3XCoreRender::GetLineWidth(float& fWidth)
 { 
 	E_GUARDS();
-	GLfloat value;
-	glGetFloatv(GL_LINE_WIDTH, &value);
-	fWidth = value;
+	fWidth = 1.0f;
+	//GLfloat value = 0;
+	//glGetFloatv(GL_LINE_WIDTH, &value);
+	//fWidth = value;
 	E_GUARDS();
 	return S_OK;
 }

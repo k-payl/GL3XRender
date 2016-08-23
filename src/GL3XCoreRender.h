@@ -60,13 +60,14 @@ public:
 
 struct State
 {
-	State() : alphaTest(false), tex_ID_last_binded(0), color(1, 1, 1, 1){}
+	State() : alphaTest(false), tex_ID_last_binded(0), color(1, 1, 1, 1), poligonMode(GL_FILL){}
 
 	TBlendStateDesc blend;
 	bool alphaTest;
 	GLuint tex_ID_last_binded;
 	TDepthStencilDesc depth;
 	TColor4 color;
+	GLint poligonMode; // GL_FILL GL_LINE
 };
 
 class GL3XCoreRender final : public ICoreRenderer

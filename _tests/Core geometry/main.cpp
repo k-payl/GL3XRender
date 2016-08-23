@@ -2,7 +2,7 @@
 // Loading geometry and creation it through core render
 //
 #include <DGLE.h>
-//#include <DGLE_CoreRenderer.h>
+#include <DGLE_CoreRenderer.h>
 
 using namespace DGLE;
 
@@ -15,7 +15,7 @@ DGLE_DYNAMIC_FUNC
 #define SCREEN_HEIGHT 700u
 
 IEngineCore *pEngineCore = nullptr;
-//ICoreRenderer *pCoreRender = nullptr;
+ICoreRenderer *pCoreRender = nullptr;
 IRender3D *pRender3D;
 IRender *pRender;
 IResourceManager *pResMan;
@@ -27,7 +27,8 @@ uint prevWindowWidth, prevWindowHeight;
 void DGLE_API Init(void *pParameter)
 {
 	pEngineCore->GetSubSystem(ESS_RENDER, reinterpret_cast<IEngineSubSystem *&>(pRender));
-	//pEngineCore->GetSubSystem(ESS_CORE_RENDERER, reinterpret_cast<IEngineSubSystem *&>(pCoreRender));
+	pEngineCore->GetSubSystem(ESS_CORE_RENDERER, reinterpret_cast<IEngineSubSystem *&>(pCoreRender));
+	
 	pRender->GetRender3D(pRender3D);
 	pEngineCore->GetSubSystem(ESS_RESOURCE_MANAGER, reinterpret_cast<IEngineSubSystem *&>(pResMan));
 	pEngineCore->GetSubSystem(ESS_INPUT, reinterpret_cast<IEngineSubSystem *&>(pInput));
@@ -53,15 +54,24 @@ void DGLE_API Render(void *pParameter)
 	pRender3D->SetPerspective(45.f, 0.1f, 100.0f);
 
 	pRender3D->SetMatrix
-	( 
-		MatrixRotate(static_cast<float>(uiCounter), TVector3(0.f, 1.f, 0.f)) * 
-		MatrixRotate(static_cast<float>(25), TVector3(1.f, 0.f, 0.f)) * 
-		MatrixTranslate(TVector3(.0f, -0.3f, -3.5f)) * 
-		MatrixIdentity() // zero point for all transformations
-	);
+		(
+			MatrixRotate(static_cast<float>(uiCounter), TVector3(0.f, 1.f, 0.f)) *
+			MatrixRotate(static_cast<float>(25), TVector3(1.f, 0.f, 0.f)) *
+			MatrixTranslate(TVector3(0.0f, -0.3f, -3.5f)) *
+			MatrixIdentity() // zero point for all transformations
+			);
 
+	pCoreRender->PushStates();
+
+	TRasterizerStateDesc rasterState;
+	pCoreRender->GetRasterizerState(rasterState);
+	rasterState.bWireframe = true;
+	pCoreRender->SetRasterizerState(rasterState);
 
 	pMesh1->Draw();
+
+	pCoreRender->PopStates();
+
 }
 
 // callback on switching to fullscreen event

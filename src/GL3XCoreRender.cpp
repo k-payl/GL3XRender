@@ -792,6 +792,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 	//TODO: depth stencil
 
 	state.color = _color;
+ 
+	GLint i[2];
+	glGetIntegerv(GL_POLYGON_MODE, i);
+	state.poligonMode = i[0];
 
 	_states.push(state);
 
@@ -824,6 +828,9 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 	//TODO: depth stencil
 
 	_color = state.color;
+
+	glPolygonMode(GL_FRONT_AND_BACK, state.poligonMode);
+	
 
 	E_GUARDS();
 	
@@ -1061,15 +1068,30 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetDepthStencilState(TDepthStencilDesc& stS
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetRasterizerState(const TRasterizerStateDesc& stState)
 { 
-	alphaTest = stState.bAlphaTestEnabled;
+	E_GUARDS();
 
+	alphaTest = stState.bAlphaTestEnabled;
+	if (stState.bWireframe)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	else 
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	// TODO: rest
+	
+	E_GUARDS();
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetRasterizerState(TRasterizerStateDesc& stState)
 { 
+	E_GUARDS();
+
 	stState.bAlphaTestEnabled = alphaTest;
-	
+	GLint i[2];
+	glGetIntegerv(GL_POLYGON_MODE, i);
+	stState.bWireframe = i[0] == GL_LINE;
+	// TODO: rest
+
+	E_GUARDS();
 	return S_OK;
 }
 

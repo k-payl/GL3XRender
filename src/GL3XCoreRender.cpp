@@ -1061,11 +1061,15 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetDepthStencilState(TDepthStencilDesc& stS
 
 DGLE_RESULT DGLE_API GL3XCoreRender::SetRasterizerState(const TRasterizerStateDesc& stState)
 { 
+	alphaTest = stState.bAlphaTestEnabled;
+
 	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetRasterizerState(TRasterizerStateDesc& stState)
 { 
+	stState.bAlphaTestEnabled = alphaTest;
+	
 	return S_OK;
 }
 

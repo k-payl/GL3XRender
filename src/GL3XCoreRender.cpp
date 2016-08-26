@@ -797,6 +797,10 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PushStates()
 	glGetIntegerv(GL_POLYGON_MODE, i);
 	state.poligonMode = i[0];
 
+	state.cullingOn = glIsEnabled(GL_CULL_FACE);
+	if (state.cullingOn == GL_TRUE)
+		glGetIntegerv(GL_CULL_FACE_MODE, &state.cullingMode);
+
 	_states.push(state);
 
 	E_GUARDS();
@@ -831,6 +835,14 @@ DGLE_RESULT DGLE_API GL3XCoreRender::PopStates()
 
 	glPolygonMode(GL_FRONT_AND_BACK, state.poligonMode);
 	
+	if (state.cullingOn == GL_FALSE)
+		glDisable(GL_CULL_FACE);
+	else
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(state.cullingMode);
+	}
+
 
 	E_GUARDS();
 	
@@ -1059,7 +1071,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetDepthStencilState(TDepthStencilDesc& stS
 
 	GLboolean enabled;
 	glGetBooleanv(GL_DEPTH_TEST, &enabled);
-	stState.bDepthTestEnabled = enabled > 0;
+	stState.bDepthTestEnabled = enabled == GL_TRUE;
 	//TODO: depth stencil
 
 	E_GUARDS();
@@ -1075,6 +1087,15 @@ DGLE_RESULT DGLE_API GL3XCoreRender::SetRasterizerState(const TRasterizerStateDe
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	else 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	if (stState.eCullMode == PCM_NONE)
+		glDisable(GL_CULL_FACE);
+	else
+	{
+		glEnable(GL_CULL_FACE);
+		if (stState.eCullMode == PCM_BACK) glCullFace(GL_BACK);
+		else if (stState.eCullMode == PCM_FRONT) glCullFace(GL_FRONT);
+	}
 	// TODO: rest
 	
 	E_GUARDS();
@@ -1086,9 +1107,23 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetRasterizerState(TRasterizerStateDesc& st
 	E_GUARDS();
 
 	stState.bAlphaTestEnabled = alphaTest;
-	GLint i[2];
-	glGetIntegerv(GL_POLYGON_MODE, i);
-	stState.bWireframe = i[0] == GL_LINE;
+
+	GLint poligonMode[2];
+	glGetIntegerv(GL_POLYGON_MODE, poligonMode);
+	stState.bWireframe = poligonMode[0] == GL_LINE;
+
+	GLboolean enabledCulling;
+	enabledCulling = glIsEnabled(GL_CULL_FACE);
+	if (enabledCulling == GL_FALSE)
+		stState.eCullMode = PCM_NONE;
+	else
+	{
+		GLint cullMode;
+		glGetIntegerv(GL_CULL_FACE_MODE, &cullMode);
+		if (cullMode == GL_BACK) stState.eCullMode = PCM_BACK;
+		else if (cullMode == GL_FRONT) stState.eCullMode = PCM_FRONT;
+	}	
+	
 	// TODO: rest
 
 	E_GUARDS();

@@ -68,6 +68,8 @@ void DGLE_API Render(void *pParameter)
 	rasterState.bWireframe = true;
 	pCoreRender->SetRasterizerState(rasterState);
 
+	pCoreRender->SetColor(TColor4(33.0f, 33.1f, 33.1f, 255.0f));
+
 	pMesh1->Draw();
 
 	pCoreRender->PopStates();

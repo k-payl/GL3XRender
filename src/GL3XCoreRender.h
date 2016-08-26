@@ -68,6 +68,8 @@ struct State
 	TDepthStencilDesc depth;
 	TColor4 color;
 	GLint poligonMode; // GL_FILL GL_LINE
+	GLboolean cullingOn; // GL_FALSE GL_TRUE
+	GLint cullingMode; // GL_FRONT GL_BACK
 };
 
 class GL3XCoreRender final : public ICoreRenderer

@@ -740,7 +740,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	pTex = pGLTexture;
-
+	
 	E_GUARDS();
 	return result;
 }
@@ -1148,6 +1148,40 @@ DGLE_RESULT DGLE_API GL3XCoreRender::BindTexture(ICoreTexture* pTex, uint uiText
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetBindedTexture(ICoreTexture*& prTex, uint uiTextureLayer)
 { 
+	assert(uiTextureLayer == 0);
+	
+	glActiveTexture(GL_TEXTURE0 + 0);
+
+	GLint tex_id = tex_ID_last_binded;
+	//glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex_id);
+
+	IResourceManager *resMan;
+	_core->GetSubSystem(ESS_RESOURCE_MANAGER, reinterpret_cast<IEngineSubSystem *&>(resMan));
+
+	uint count;
+	resMan->GetResourcesCount(count);
+
+	for (uint i = 0; i < count; ++i)
+	{
+		IEngineBaseObject *p_obj;
+		resMan->GetResourceByIndex(i, p_obj);
+
+		E_ENGINE_OBJECT_TYPE type;
+		p_obj->GetType(type);
+
+		if (type == EOT_TEXTURE)
+		{
+			ICoreTexture *p_ctex;
+			((ITexture *)p_obj)->GetCoreTexture(p_ctex);
+
+			if (((GLTexture*)p_ctex)->Texture_ID() == tex_id)
+			{
+				prTex = p_ctex;
+				return S_OK;
+			}
+		}
+	}
+
 	return S_OK;
 }
 

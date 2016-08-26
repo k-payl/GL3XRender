@@ -11,7 +11,8 @@ See "DGLE.h" for more details.
 #include "DGLE.h"
 #include "DGLE_CoreRenderer.h"
 #include "GL/glew.h"
-#include<vector>
+#include <vector>
+#include <map>
 
 using namespace DGLE;
 
@@ -81,7 +82,7 @@ class GL3XCoreRender final : public ICoreRenderer
 	TMatrix4x4 T;	
 	GLuint tex_ID_last_binded;
 	bool alphaTest;
-	TColor4 _color;
+	TColor4 _color;	
 
 	GLShader* chooseShader(INPUT_ATTRIBUTE attributes, bool texture_binded, bool light_on, bool is2d, bool alphaTest);
 

@@ -2,6 +2,7 @@
 // Test texturing
 //
 #include <DGLE.h>
+#include <DGLE_CoreRenderer.h>
 
 using namespace DGLE;
 
@@ -15,6 +16,7 @@ DGLE_DYNAMIC_FUNC
 #define SCREEN_HEIGHT 700u
 
 IEngineCore *pEngineCore = nullptr;
+ICoreRenderer *pCoreRender = nullptr;
 IRender3D *pRender3D;
 IRender *pRender;
 IResourceManager *pResMan;
@@ -27,6 +29,7 @@ uint prevWindowWidth, prevWindowHeight;
 void DGLE_API Init(void *pParameter)
 {
 	pEngineCore->GetSubSystem(ESS_RENDER, reinterpret_cast<IEngineSubSystem *&>(pRender));
+	pEngineCore->GetSubSystem(ESS_CORE_RENDERER, reinterpret_cast<IEngineSubSystem *&>(pCoreRender));
 	pRender->GetRender3D(pRender3D);
 	pEngineCore->GetSubSystem(ESS_RESOURCE_MANAGER, reinterpret_cast<IEngineSubSystem *&>(pResMan));
 	pEngineCore->GetSubSystem(ESS_INPUT, reinterpret_cast<IEngineSubSystem *&>(pInput));
@@ -62,6 +65,10 @@ void DGLE_API Render(void *pParameter)
 	//pRender3D->BindTexture(pTex1, 0);
 	//pMesh1->Draw();
 	pRender3D->BindTexture(pTex2, 0);
+
+	ICoreTexture *ptex;
+	pCoreRender->GetBindedTexture(ptex, 0);
+
 	pMesh2->Draw();	
 	pRender3D->BindTexture(nullptr, 0);
 }

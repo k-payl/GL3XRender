@@ -12,7 +12,6 @@ See "DGLE.h" for more details.
 #include "DGLE_CoreRenderer.h"
 #include "GL/glew.h"
 #include <vector>
-#include <map>
 
 using namespace DGLE;
 

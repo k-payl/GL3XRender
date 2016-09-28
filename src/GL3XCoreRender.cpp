@@ -81,6 +81,16 @@ inline E_BLEND_FACTOR BlendFactor_GL_2_DGLE(GLenum glFactor)
 }
 #pragma warning(pop)
 
+int calculateCompressedDataSize(uint uiWidth, uint uiHeight, E_TEXTURE_DATA_FORMAT eDataFormat)
+{
+	int blockSize;
+	if (eDataFormat == TDF_DXT1)
+		blockSize = 8;
+	else
+		blockSize = 16;
+	return ((uiWidth + 3) / 4) * ((uiHeight + 3) / 4) * blockSize;
+}
+
 static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
 {
 	_core->WriteToLogEx(pcTxt, eType, pcSrcFileName, iSrcLineNumber);
@@ -189,8 +199,8 @@ static void getGLFormats(E_TEXTURE_DATA_FORMAT eDataFormat, GLint& VRAMFormat, G
 		case TDF_ALPHA8:			VRAMFormat = GL_R8;		sourceFormat = GL_RED; break;
 		case TDF_BGR8:				VRAMFormat = GL_RGB8;	sourceFormat = GL_BGR; break;
 		case TDF_BGRA8:				VRAMFormat = GL_RGBA8;	sourceFormat = GL_BGRA; break;
-		//case TDF_DXT1:				break; ??
-		//case TDF_DXT5: break;
+		case TDF_DXT1:				VRAMFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;	sourceFormat = GL_RGB; break;
+		case TDF_DXT5: assert(false); /*implement*/ break;
 		//case TDF_DEPTH_COMPONENT24: break;
 		//case TDF_DEPTH_COMPONENT32: break;
 		default: assert(false); break;
@@ -417,7 +427,11 @@ public:
 	DGLE_RESULT DGLE_API GetPixelData(uint8* pData, uint& uiDataSize, uint uiLodLevel) override {return S_OK;}
 	DGLE_RESULT DGLE_API SetPixelData(const uint8* pData, uint uiDataSize, uint uiLodLevel) override {return S_OK;}
 	DGLE_RESULT DGLE_API Reallocate(const uint8* pData, uint uiWidth, uint uiHeight, bool bMipMaps, E_TEXTURE_DATA_FORMAT eDataFormat) override 
-	{
+	{ 
+		// TODO: 
+		// load mipmaps
+		// check if foormat changed then recreate texture
+		// check if mipmap: true -> false => recreate texture; false->true => glGenerateMipmap()
 		E_GUARDS();
 		GLint VRAMFormat;
 		GLenum sourceFormat;
@@ -425,8 +439,18 @@ public:
 		getGLFormats(eDataFormat, VRAMFormat, sourceFormat);
 
 		glBindTexture(GL_TEXTURE_2D, Texture_ID());
+		E_GUARDS();
 
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, uiWidth, uiHeight, sourceFormat, sourceType, pData);
+		const bool compressed = eDataFormat == TDF_DXT1 || eDataFormat == TDF_DXT5;
+		
+		if (compressed)
+		{
+			int nSize = calculateCompressedDataSize(uiWidth, uiHeight, eDataFormat);
+			glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, uiWidth, uiHeight, VRAMFormat, nSize, pData);
+		}
+		else
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, uiWidth, uiHeight, sourceFormat, sourceType, pData);
+		E_GUARDS();
 		if (_bGenerateMipmaps) glGenerateMipmap(GL_TEXTURE_2D);
 
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -732,11 +756,24 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 	GLenum sourceType = GL_UNSIGNED_BYTE;
 	getGLFormats(eDataFormat, internalFormat, sourceFormat);
 	
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, uiWidth, uiHeight, 0, sourceFormat, sourceType, nullptr); // allocate
-	//glTexStorage2D(GL_TEXTURE_2D, mipmaps, VRAMFormat, uiWidth, uiHeight); // 4.2	
+	const bool compressed = eDataFormat == TDF_DXT1 || eDataFormat == TDF_DXT5;
 
-	auto result = pGLTexture->Reallocate(pData, uiWidth, uiHeight, bMipmapsPresented, eDataFormat); // upload
+	DGLE_RESULT result;
 
+	if (compressed)
+	{
+		int nSize = calculateCompressedDataSize(uiWidth, uiHeight, eDataFormat);
+		glCompressedTexImage2D(GL_TEXTURE_2D, 0, internalFormat, uiWidth, uiHeight, 0, nSize, pData);
+		result = S_OK;
+		E_GUARDS();
+	}
+	else
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, uiWidth, uiHeight, 0, sourceFormat, sourceType, nullptr); // allocate
+		//glTexStorage2D(GL_TEXTURE_2D, mipmaps, VRAMFormat, uiWidth, uiHeight); // 4.2	
+		E_GUARDS();
+		result = pGLTexture->Reallocate(pData, uiWidth, uiHeight, bMipmapsPresented, eDataFormat); // upload
+	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	pTex = pGLTexture;
@@ -1187,6 +1224,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::GetBindedTexture(ICoreTexture*& prTex, uint
 
 DGLE_RESULT DGLE_API GL3XCoreRender::GetFixedFunctionPipelineAPI(IFixedFunctionPipeline*& prFFP)
 { 
+	prFFP = nullptr;
 	return S_OK;
 }
 
@@ -1222,7 +1260,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::IsFeatureSupported(E_CORE_RENDERER_FEATURE_
 	case CRFT_PROGRAMMABLE_PIPELINE: bIsSupported = true; break;
 	case CRFT_LEGACY_FIXED_FUNCTION_PIPELINE_API: bIsSupported = false; break;
 	case CRFT_BGRA_DATA_FORMAT: break;
-	case CRFT_TEXTURE_COMPRESSION: break;
+	case CRFT_TEXTURE_COMPRESSION: bIsSupported = (GLEW_ARB_texture_compression == GL_TRUE && GLEW_EXT_texture_compression_s3tc == GL_TRUE); break;
 	case CRFT_NON_POWER_OF_TWO_TEXTURES: break;
 	case CRFT_DEPTH_TEXTURES: break;
 	case CRFT_TEXTURE_ANISOTROPY: bIsSupported = true; break;

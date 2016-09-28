@@ -81,14 +81,31 @@ inline E_BLEND_FACTOR BlendFactor_GL_2_DGLE(GLenum glFactor)
 }
 #pragma warning(pop)
 
-int calculateCompressedDataSize(uint uiWidth, uint uiHeight, E_TEXTURE_DATA_FORMAT eDataFormat)
+int calculateDataSize(uint uiWidth, uint uiHeight, E_TEXTURE_DATA_FORMAT eDataFormat)
 {
-	int blockSize;
-	if (eDataFormat == TDF_DXT1)
-		blockSize = 8;
-	else
-		blockSize = 16;
-	return ((uiWidth + 3) / 4) * ((uiHeight + 3) / 4) * blockSize;
+	//TODO: support align
+	if (eDataFormat == TDF_DXT1 || eDataFormat == TDF_DXT5)
+	{
+		int blockSize;
+		if (eDataFormat == TDF_DXT1)
+			blockSize = 8;
+		else
+			blockSize = 16;
+		if (uiWidth < 4 || uiHeight < 4) return blockSize;
+		return (uiWidth / 4) * (uiHeight / 4) * blockSize;
+	}
+	int bytePerPixel;
+	switch(eDataFormat)
+	{
+		case TDF_ALPHA8: bytePerPixel = 1; break;
+		case TDF_BGR8: bytePerPixel = 3;
+		case TDF_RGB8: bytePerPixel = 3; break;
+		case TDF_RGBA8: bytePerPixel = 4;
+		case TDF_BGRA8: bytePerPixel = 4; break;		
+		default: assert(false);
+	}
+	int n = uiWidth * uiHeight * bytePerPixel;
+	return n;
 }
 
 static void LogToDGLE(const char *pcTxt, E_LOG_TYPE eType, const char *pcSrcFileName, int iSrcLineNumber)
@@ -397,14 +414,14 @@ public:
 class GLTexture final : public ICoreTexture
 {
 	GLuint _textureID;
-	bool _bGenerateMipmaps;
+	bool _bMipmapsAllocated;
 
 public:
 
 	inline GLuint Texture_ID() { return _textureID; }
 
-	GLTexture(bool bGenerateMipmaps) :
-		_bGenerateMipmaps(bGenerateMipmaps)
+	GLTexture() :
+		_bMipmapsAllocated(false)
 	{
 		E_GUARDS();
 		glGenTextures(1, &_textureID);
@@ -418,6 +435,8 @@ public:
 		E_GUARDS();
 		//LOG_INFO("~GLTexture()");
 	}
+
+	void SetMipmapAllocated() { _bMipmapsAllocated = true; }
 
 	DGLE_RESULT DGLE_API GetSize(uint& width, uint& height) override {return S_OK;}
 	DGLE_RESULT DGLE_API GetDepth(uint& depth) override {return S_OK;}
@@ -445,13 +464,13 @@ public:
 		
 		if (compressed)
 		{
-			int nSize = calculateCompressedDataSize(uiWidth, uiHeight, eDataFormat);
+			int nSize = calculateDataSize(uiWidth, uiHeight, eDataFormat);
 			glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, uiWidth, uiHeight, VRAMFormat, nSize, pData);
 		}
 		else
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, uiWidth, uiHeight, sourceFormat, sourceType, pData);
 		E_GUARDS();
-		if (_bGenerateMipmaps) glGenerateMipmap(GL_TEXTURE_2D);
+		if (bMipMaps) glGenerateMipmap(GL_TEXTURE_2D);
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -669,66 +688,70 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 	const bool powerOfTwo_w = !(uiWidth == 0) && !(uiWidth & (uiWidth - 1));
 	assert(powerOfTwo_h && powerOfTwo_w);
 
-	GLTexture* pGLTexture = new GLTexture( (eLoadFlags & TLF_GENERATE_MIPMAPS) != 0 );
+	bool bGenerateMipMaps = (eLoadFlags & TLF_GENERATE_MIPMAPS) != 0;
+	if (bMipmapsPresented && bGenerateMipMaps) bGenerateMipMaps = false;
+
+	const bool willBeMipMaps = bMipmapsPresented || bGenerateMipMaps;
+
+	GLTexture* pGLTexture = new GLTexture();
 
 	glBindTexture(GL_TEXTURE_2D, pGLTexture->Texture_ID());
 
 	if (eLoadFlags & TLF_FILTERING_ANISOTROPIC)
 	{
-		assert(GLEW_EXT_texture_filter_anisotropic);E_GUARDS();
+		assert(GLEW_EXT_texture_filter_anisotropic);
 
-		GLint anisotropic_level = 4;E_GUARDS();
+		GLint anisotropic_level = 4;
 		if (eLoadFlags & TLF_ANISOTROPY_2X)	anisotropic_level = 2;
 		else if (eLoadFlags & TLF_ANISOTROPY_4X) anisotropic_level = 4;
 		else if (eLoadFlags & TLF_ANISOTROPY_8X) anisotropic_level = 8;
 		else if (eLoadFlags & TLF_ANISOTROPY_16X) anisotropic_level = 16;
 
-		GLint _iMaxAnisotropy;
+		GLint maxAnisotropy;
 		if (GLEW_EXT_texture_filter_anisotropic)
-			glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_iMaxAnisotropy);
+			glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
 
-		if (anisotropic_level > _iMaxAnisotropy) anisotropic_level = _iMaxAnisotropy;E_GUARDS();
+		if (anisotropic_level > maxAnisotropy) anisotropic_level = maxAnisotropy;
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropic_level);E_GUARDS();
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropic_level);
 
-		if (eLoadFlags & TLF_GENERATE_MIPMAPS)
+		if (willBeMipMaps)
 		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);E_GUARDS();
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);E_GUARDS();
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		}
 		else
 		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);E_GUARDS();
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);E_GUARDS();			
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);			
 		}
 	}
 	else
 	{
-		GLint glFilter;E_GUARDS();
-		if (eLoadFlags & TLF_GENERATE_MIPMAPS)
+		GLint glFilter;
+		if (willBeMipMaps)
 		{
 			switch (eLoadFlags)
 			{
-				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST_MIPMAP_NEAREST;E_GUARDS(); break;E_GUARDS();
-				case TLF_FILTERING_BILINEAR:	glFilter = GL_LINEAR_MIPMAP_NEAREST;E_GUARDS(); break;E_GUARDS();
-				case TLF_FILTERING_TRILINEAR:
-				default:						glFilter = GL_LINEAR_MIPMAP_LINEAR;E_GUARDS(); break;E_GUARDS();
+				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST_MIPMAP_NEAREST; break;
+				case TLF_FILTERING_BILINEAR:	glFilter = GL_LINEAR_MIPMAP_NEAREST; break;
+				case TLF_FILTERING_TRILINEAR:	glFilter = GL_LINEAR_MIPMAP_LINEAR; break;
+				default:						glFilter = GL_NEAREST_MIPMAP_NEAREST; break;
 			}
 		}
 		else
 		{
 			switch (eLoadFlags)
 			{
-				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST;E_GUARDS(); break;E_GUARDS();
-				case TLF_FILTERING_BILINEAR:
+				case TLF_FILTERING_NONE:		glFilter = GL_NEAREST; break;
+				case TLF_FILTERING_BILINEAR:	glFilter = GL_LINEAR; break;
 				case TLF_FILTERING_TRILINEAR: // mustn't happen without mipmaps
-				default:						glFilter = GL_LINEAR;E_GUARDS(); break;E_GUARDS();
+				default:						glFilter = GL_NEAREST; break;
 			}
 		}
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glFilter); 
-		GLenum err = glGetError(); E_GUARDS();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glFilter);E_GUARDS();
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glFilter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glFilter);
 
 	}
 
@@ -758,28 +781,41 @@ DGLE_RESULT DGLE_API GL3XCoreRender::CreateTexture(ICoreTexture*& pTex, const ui
 	
 	const bool compressed = eDataFormat == TDF_DXT1 || eDataFormat == TDF_DXT5;
 
-	DGLE_RESULT result;
+	int mipmaps = 1;
+	if (bMipmapsPresented)
+		mipmaps = static_cast<int>(log2(uiWidth)) + 1;
+	
+	int nOffset = 0;
 
-	if (compressed)
+	for (int i = 0; i < mipmaps; i++)
 	{
-		int nSize = calculateCompressedDataSize(uiWidth, uiHeight, eDataFormat);
-		glCompressedTexImage2D(GL_TEXTURE_2D, 0, internalFormat, uiWidth, uiHeight, 0, nSize, pData);
-		result = S_OK;
+		int nSize = calculateDataSize(uiWidth, uiHeight, eDataFormat);
+
+		if (!compressed)
+			glTexImage2D(GL_TEXTURE_2D, i, internalFormat, uiWidth, uiHeight, 0, sourceFormat, sourceType, pData + nOffset);
+		else
+			glCompressedTexImage2D(GL_TEXTURE_2D, i, internalFormat, uiWidth, uiHeight, 0, nSize, pData + nOffset);
+
+		uiWidth /= 2;
+		uiHeight /= 2;
+		nOffset += nSize;
 		E_GUARDS();
 	}
-	else
+
+	if (mipmaps > 1) pGLTexture->SetMipmapAllocated();
+
+	if (bGenerateMipMaps && !bMipmapsPresented)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, uiWidth, uiHeight, 0, sourceFormat, sourceType, nullptr); // allocate
-		//glTexStorage2D(GL_TEXTURE_2D, mipmaps, VRAMFormat, uiWidth, uiHeight); // 4.2	
-		E_GUARDS();
-		result = pGLTexture->Reallocate(pData, uiWidth, uiHeight, bMipmapsPresented, eDataFormat); // upload
+		pGLTexture->SetMipmapAllocated();
+		glGenerateMipmap(GL_TEXTURE_2D);
 	}
+
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	pTex = pGLTexture;
 	
 	E_GUARDS();
-	return result;
+	return S_OK;
 }
 
 DGLE_RESULT DGLE_API GL3XCoreRender::CreateGeometryBuffer(ICoreGeometryBuffer*& prBuffer, const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode, E_CORE_RENDERER_BUFFER_TYPE eType)
@@ -1259,7 +1295,7 @@ DGLE_RESULT DGLE_API GL3XCoreRender::IsFeatureSupported(E_CORE_RENDERER_FEATURE_
 	case CRFT_VSYNC: break;
 	case CRFT_PROGRAMMABLE_PIPELINE: bIsSupported = true; break;
 	case CRFT_LEGACY_FIXED_FUNCTION_PIPELINE_API: bIsSupported = false; break;
-	case CRFT_BGRA_DATA_FORMAT: break;
+	case CRFT_BGRA_DATA_FORMAT: bIsSupported = true; break;
 	case CRFT_TEXTURE_COMPRESSION: bIsSupported = (GLEW_ARB_texture_compression == GL_TRUE && GLEW_EXT_texture_compression_s3tc == GL_TRUE); break;
 	case CRFT_NON_POWER_OF_TWO_TEXTURES: break;
 	case CRFT_DEPTH_TEXTURES: break;

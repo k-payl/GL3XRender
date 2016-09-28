@@ -34,7 +34,7 @@ void DGLE_API Init(void *pParameter)
 	pEngineCore->GetSubSystem(ESS_RESOURCE_MANAGER, reinterpret_cast<IEngineSubSystem *&>(pResMan));
 	pEngineCore->GetSubSystem(ESS_INPUT, reinterpret_cast<IEngineSubSystem *&>(pInput));
 	pResMan->Load(MODELS_PATH"plane100x100.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh2), MMLF_FORCE_MODEL_TO_MESH);
-	pResMan->Load(TEXTURES_PATH"ss_color3.jpg", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS | TLF_FILTERING_ANISOTROPIC | TLF_ANISOTROPY_16X);
+	pResMan->Load(TEXTURES_PATH"ss_color3_dxt1.dds", reinterpret_cast<IEngineBaseObject *&>(pTex2), TLF_GENERATE_MIPMAPS | TLF_FILTERING_ANISOTROPIC);
 }
 
 void DGLE_API Update(void *pParameter)

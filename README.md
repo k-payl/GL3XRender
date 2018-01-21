@@ -1,7 +1,8 @@
 # GL3XRender
+![Alt text](teapot.jpg?raw=true "Example Teapot")
 
 ## What is it?
-It is render plugin for [DGLE](http://dglengine.org)https://github.com/DGLE-HQ/DGLE). DGLE alredy has it own support for OpenGL but it restricted by version 2.1. 
+It is render plugin for [DGLE](https://github.com/DGLE-HQ/DGLE). DGLE alredy has it own support for OpenGL but it restricted by version 2.1. 
 A plugin allows initialize DGLE under latest OpenGL 4.5 context.
 
 ## Installing
@@ -11,7 +12,7 @@ Type
 ```
 git clone https://github.com/k-payl/GL3XRender
 ```
-Folder structures now are:
+Folder structure now are:
 ```
 .../DGLE/
 .../GL3XRender/
@@ -21,8 +22,8 @@ It build __GL3XRender.dll__ to __DGLE/bin/windows/plugins/__ directory. Now you 
 some of my test.
 
 ## Project structure
-* GL3XRender/__src__ - main codebase
+* GL3XRender/__src__ - main codebase.
 * GL3XRender/___utils__ - now it only constains shader generator. 
-* GL3XRender/___test__ - examples for testing functionality 
+* GL3XRender/___test__ - examples for testing functionality. 
 
-![Alt text](teapot.jpg?raw=true "Example Teapot")
+

@@ -1,6 +1,6 @@
 /**
 \author		Konstantin Pajl aka Consta
-\date		12.06.2016 (c)Andrey Korotkov
+\date		11.01.2018 (c)Andrey Korotkov
 
 This file is a part of DGLE project and is distributed
 under the terms of the GNU Lesser General Public License.
@@ -13,8 +13,10 @@ See "DGLE.h" for more details.
 #include "GL/glew.h"
 #include <vector>
 
+
 using namespace DGLE;
 
+class GL3XCoreRender;
 struct ShaderSrc;
 
 enum INPUT_ATTRIBUTE
@@ -52,24 +54,109 @@ public:
 	bool bInputTextureCoords() const;
 	bool hasUniform(std::string) const;
 	bool bAlphaTest() const;
+};
 
-	//bool operator<(const GLShader& r) const;
-	//bool operator==(const GLShader& r) const;
-	//unsigned int hash() const;
+class GLGeometryBuffer final : public ICoreGeometryBuffer
+{
+	bool _bAlreadyInitalized;
+	uint _vertexBytes;
+	uint _indexBytes;
+	GLsizei _vertexCount;
+	GLsizei _indexCount;
+	GLuint _vao;
+	GLuint _vbo;
+	GLuint _ibo;
+	E_CORE_RENDERER_BUFFER_TYPE _eBufferType;
+	E_CORE_RENDERER_DRAW_MODE _eDrawMode;
+	GL3XCoreRender * const _pRnd;
+	INPUT_ATTRIBUTE _attribs_presented;
+	GLuint activated_attributes[5];
+	bool _b2dPosition;
+
+public:
+
+	GLGeometryBuffer(E_CORE_RENDERER_BUFFER_TYPE eType, bool indexBuffer, GL3XCoreRender *pRnd);
+	~GLGeometryBuffer();
+
+	GLuint input_attrib_to_uint(INPUT_ATTRIBUTE attrib);
+	inline GLuint VAO_ID() { return _vao; }
+	inline bool IndexDrawing() { return _ibo > 0; }
+	inline GLsizei VertexCount() { return _vertexCount; }
+	inline GLsizei IndexCount() { return _indexCount; }
+	inline INPUT_ATTRIBUTE GetAttributes() { return _attribs_presented; }
+	inline bool Is2dPosition() { return _b2dPosition; }
+	inline GLenum GLDrawMode();
+	inline void ToggleAttribInVAO(INPUT_ATTRIBUTE attrib, bool value);
+	GLsizei vertexSize(const TDrawDataDesc& stDrawDesc);
+	
+	DGLE_RESULT DGLE_API GetGeometryData(TDrawDataDesc& stDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override;
+	DGLE_RESULT DGLE_API SetGeometryData(const TDrawDataDesc& stDrawDesc, uint uiVerticesDataSize, uint uiIndexesDataSize) override;
+	DGLE_RESULT DGLE_API Reallocate(const TDrawDataDesc& stDrawDesc, uint uiVerticesCount, uint uiIndicesCount, E_CORE_RENDERER_DRAW_MODE eMode) override;
+	DGLE_RESULT DGLE_API GetBufferDimensions(uint& uiVerticesDataSize, uint& uiVerticesCount, uint& uiIndexesDataSize, uint& uiIndexesCount) override;
+	DGLE_RESULT DGLE_API GetBufferDrawDataDesc(TDrawDataDesc& stDesc) override;
+	DGLE_RESULT DGLE_API GetBufferDrawMode(E_CORE_RENDERER_DRAW_MODE& eMode) override;
+	DGLE_RESULT DGLE_API GetBufferType(E_CORE_RENDERER_BUFFER_TYPE& eType) override;
+	DGLE_RESULT DGLE_API GetBaseObject(IBaseRenderObjectContainer*& prObj) override;
+	DGLE_RESULT DGLE_API Free() override;
+
+	IDGLE_BASE_IMPLEMENTATION(ICoreGeometryBuffer, INTERFACE_IMPL_END)
+};
+
+class GLTexture final : public ICoreTexture
+{
+	GLuint _textureID;
+	bool _bMipmapsAllocated;
+
+public:
+
+	GLTexture();
+	~GLTexture();	
+
+	inline GLuint Texture_ID() { return _textureID; }
+	void SetMipmapAllocated() { _bMipmapsAllocated = true; }
+
+	DGLE_RESULT DGLE_API GetSize(uint& width, uint& height) override;
+	DGLE_RESULT DGLE_API GetDepth(uint& depth) override;
+	DGLE_RESULT DGLE_API GetType(E_TEXTURE_TYPE& eType) override;
+	DGLE_RESULT DGLE_API GetFormat(E_TEXTURE_DATA_FORMAT& eFormat) override;
+	DGLE_RESULT DGLE_API GetLoadFlags(E_TEXTURE_LOAD_FLAGS& eLoadFlags) override;
+	DGLE_RESULT DGLE_API GetPixelData(uint8* pData, uint& uiDataSize, uint uiLodLevel) override;
+	DGLE_RESULT DGLE_API SetPixelData(const uint8* pData, uint uiDataSize, uint uiLodLevel) override;
+	DGLE_RESULT DGLE_API Reallocate(const uint8* pData, uint uiWidth, uint uiHeight, bool bMipMaps, E_TEXTURE_DATA_FORMAT eDataFormat) override;
+	DGLE_RESULT DGLE_API GetBaseObject(IBaseRenderObjectContainer*& prObj) override;
+	DGLE_RESULT DGLE_API Free() override;
+
+	IDGLE_BASE_IMPLEMENTATION(ICoreTexture, INTERFACE_IMPL_END)
 };
 
 struct State
 {
-	State() : alphaTest(false), tex_ID_last_binded(0), color(1, 1, 1, 1), poligonMode(GL_FILL){}
+	State() : alphaTest(false), tex_ID_last_binded(0), color(1, 1, 1, 1), clearColor(0, 0, 0, 0),
+		poligonMode(GL_FILL), pRenderTarget(nullptr){}
 
 	TBlendStateDesc blend;
 	bool alphaTest;
 	GLuint tex_ID_last_binded;
 	TDepthStencilDesc depth;
 	TColor4 color;
+	TColor4 clearColor;
 	GLint poligonMode; // GL_FILL GL_LINE
 	GLboolean cullingOn; // GL_FALSE GL_TRUE
 	GLint cullingMode; // GL_FRONT GL_BACK
+	ICoreTexture *pRenderTarget;
+};
+
+struct FBO
+{
+	FBO() : ID(0), depth_renderbuffer_ID(0), width(0), height(0) {}
+
+	GLuint ID;
+	GLuint depth_renderbuffer_ID;
+	int width, height;
+
+	void Init();
+	void GenerateDepthRenderbuffer(uint w, uint h);
+	void Free();
 };
 
 class GL3XCoreRender final : public ICoreRenderer
@@ -82,6 +169,12 @@ class GL3XCoreRender final : public ICoreRenderer
 	GLuint tex_ID_last_binded;
 	bool alphaTest;
 	TColor4 _color;	
+	TColor4 _clearColor;	
+
+	ICoreTexture *pCurrentRenderTarget;
+	std::vector<FBO> _fboPool;
+	GLsizei viewportWidth, viewportHeight;
+	GLint viewportX, viewportY;
 
 	GLShader* chooseShader(INPUT_ATTRIBUTE attributes, bool texture_binded, bool light_on, bool is2d, bool alphaTest);
 

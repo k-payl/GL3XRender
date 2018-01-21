@@ -3,4 +3,17 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="GLEW">
+      <UniqueIdentifier>{5a5a92b9-f637-454c-ad17-2d40cdb26161}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GL\glew.h">
+      <Filter>GLEW</Filter>
+    </ClInclude>
+    <ClInclude Include="GL\wglew.h">
+      <Filter>GLEW</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

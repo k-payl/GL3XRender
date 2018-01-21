@@ -34,6 +34,13 @@ void DGLE_API Init(void *pParameter)
 	pEngineCore->GetSubSystem(ESS_INPUT, reinterpret_cast<IEngineSubSystem *&>(pInput));
 	pResMan->Load(MODELS_PATH"teapot.dmd", reinterpret_cast<IEngineBaseObject *&>(pMesh1), MMLF_FORCE_MODEL_TO_MESH);
 	//pResMan->GetDefaultResource(EOT_MESH, reinterpret_cast<IEngineBaseObject *&>(pMesh));
+	pCoreRender->SetColor(ColorOrange());
+
+	TRasterizerStateDesc rasterState;
+	pCoreRender->GetRasterizerState(rasterState);
+	rasterState.bWireframe = true;
+	pCoreRender->SetRasterizerState(rasterState);
+	pCoreRender->SetLineWidth(5.0f);
 
 }
 
@@ -43,9 +50,7 @@ void DGLE_API Update(void *pParameter)
 	bool is_pressed;
 	pInput->GetKey(KEY_ESCAPE, is_pressed);
 	if (is_pressed)
-	{
 		pEngineCore->QuitEngine();
-	}
 
 	++uiCounter;
 }
@@ -64,12 +69,8 @@ void DGLE_API Render(void *pParameter)
 
 	pCoreRender->PushStates();
 
-	TRasterizerStateDesc rasterState;
-	pCoreRender->GetRasterizerState(rasterState);
-	rasterState.bWireframe = true;
-	pCoreRender->SetRasterizerState(rasterState);
 
-	pCoreRender->SetColor(TColor4(33.0f, 33.1f, 33.1f, 255.0f));
+
 
 	pMesh1->Draw();
 

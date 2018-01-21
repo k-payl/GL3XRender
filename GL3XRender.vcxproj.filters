@@ -4,11 +4,11 @@
     <ClCompile Include="src/GL3XCoreRender.cpp" />
     <ClCompile Include="src/Main.cpp" />
     <ClCompile Include="src/PluginCore.cpp" />
+    <ClCompile Include="src\wgl.cpp" />
+    <ClCompile Include="src\shaderSources.cpp" />
     <ClCompile Include="src\GL\glew.c">
       <Filter>GLEW</Filter>
     </ClCompile>
-    <ClCompile Include="src\wgl.cpp" />
-    <ClCompile Include="src\shaderSources.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src/GL3XCoreRender.h" />
@@ -23,18 +23,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />
-    <None Include="src\shaders\camera_pnt_vert.shader" />
-    <None Include="src\shaders\camera_pnt_frag.shader" />
-    <None Include="src\shaders\camera_pn_frag.shader" />
-    <None Include="src\shaders\camera_pn_vert.shader" />
-    <None Include="src\shaders\camera_p_frag.shader" />
-    <None Include="src\shaders\camera_p_vert.shader" />
-    <None Include="src\shaders\camera_pt_frag.shader" />
-    <None Include="src\shaders\camera_pt_vert.shader" />
-    <None Include="src\shaders\camera_pt_2d_frag.shader" />
-    <None Include="src\shaders\camera_pt_2d_vert.shader" />
-    <None Include="src\shaders\camera_p_2d_frag.shader" />
-    <None Include="src\shaders\camera_p_2d_vert.shader" />
+    <None Include="src\shaders\mesh_fragment.shader" />
+    <None Include="src\shaders\mesh_vertex.shader" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GLEW">

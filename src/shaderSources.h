@@ -13,7 +13,6 @@ struct ShaderSrc
 	const INPUT_ATTRIBUTE attribs;
 	const bool bPositionIsVec2;
 	const bool bAlphaTest;
-	const std::unordered_set<std::string> uniforms;
 };
 
 const std::vector<ShaderSrc>& getShaderSources();

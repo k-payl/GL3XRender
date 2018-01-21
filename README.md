@@ -17,8 +17,8 @@ Folder structure now are:
 .../DGLE/
 .../GL3XRender/
 ```
-Now open Visual Studio solution GL3XRender.sln and build GL3XRender project.
-It build __GL3XRender.dll__ to __DGLE/bin/windows/plugins/__ directory. Now you can use any example from DGLE repository or 
+Now open Visual Studio solution GL3XRender/__GL3XRender.sln__ and build GL3XRender project.
+It build __GL3XRender.dll__ to DGLE/bin/windows/plugins/ directory. Now you can use any example from DGLE repository or 
 some of my test.
 
 ## Project structure
